@@ -1,0 +1,7 @@
+nodeSelector:
+  cloud.google.com/gke-nodepool: default-pool
+javaToolOptions: "-Dlogging.level.com.lucidworks.cloud=INFO"
+pod:
+  annotations:
+    prometheus.io/port: "8787"
+    prometheus.io/scrape: "true"

@@ -1,0 +1,137 @@
+== Lab 4: Monitoring Query Performance
+
+In this lab, you'll load a dataset from Google Cloud Storage and then run a query load test using Gatling. You'll learn how to monitor query performance using Grafana dashboards.
+
+=== Step 1: Login to Grafana and Import Dashboards
+
+You'll need to get the initial Grafana password from a k8s secret.
+See instructions here: https://github.com/lucidworks/fusion-cloud-native#grafana-dashboards
+
+You can expose Grafana to the internet using:
+```
+kubectl expose deployment <RELEASE>-graf-grafana --type=LoadBalancer --name=grafana
+```
+
+How do you get the external IP?
+```
+kubectl get service grafana -o jsonpath='{.status.loadBalancer.ingress[0].ip}'
+```
+
+=== Step 2: Add the Load PBL Job and Run It
+
+As you did in `lab3`, create a `lab4` app and then update the collection layout using the `update_app_coll_layout.sh` script.
+
+Run `./post_job.sh` from the `lab4` directory to create the job and run it.
+
+While the job is running, observe the Spark job related pods running in your cluster.
+
+```
+k get pods -l jobConfigId=lab4_load_from_GCS -o wide --watch
+```
+
+Notice how we're using the Spark Job Config ID `lab4_load_from_GCS` as pod label filter.
+
+While the job is running, open a port-forward to the driver pod port 4040 and navigate to `http://localhost:4040` to view the Spark Job UI.
+
+Ctrl-C once you see the driver pod is `Completed`
+
+Observe which nodes the Spark driver and executor are running on `spark-std-8` ... why is this happening?
+
+=== Step 3: Configure warming queries
+
+Add the following warming queries configuration to your custom values yaml and deploy the change.
+```
+query-pipeline:
+  warmingQueryJson:
+    {
+      "pipelines": [
+        { "pipeline": "lab4", "collection": "lab4", "params": {"q": ["*:*"] } },
+        { "pipeline": "lab4", "collection": "lab4", "params": {"q": ["string2_s:cariole^98 text1_txt_en:chemis^57"] } }
+      ],
+      "profiles": [
+        { "profile": "lab4", "params": {"q": ["*:*"] } },
+      ]
+    }
+```
+
+__NOTE: The spacing and indentation is important for embedding JSON in YAML correctly__
+
+After running the upgrade, inspect the warming query configmap:
+```
+k get cm <RELEASE>-query-pipeline-warming-queries -o yaml --export
+```
+
+*You'll have to delete the running query pod(s) to pickup the warming query configmap changes.*
+
+=== Step 4: Use a query stage to add the lw.nodeFilter parameter
+
+Add query parameter: `lw.nodeFilter=coll:lab4`
+
+=== Step 5: Deploy the Gatling Simulation to K8s
+
+The `fusion-cloud-native` repo contains a maven project to help customers build query load tests.
+
+You can run that project from an IDE locally but it's better to run the load test from a node closer to your cluster.
+
+So let's load this gatling simulation into the cluster using Docker as this will give you a feel for how images get deployed in k8s.
+
+==== Optional: Build and Push Docker Image
+
+If you have Docker installed on your local workstation, then let's build a custom image and push it to GCP's Docker registry
+
+```
+docker build -t gatling-qps:<NAMESPACE> -f docker/Dockerfile .
+```
+
+Run a script to tag and push the image from local to GCP:
+```
+./gcp_docker.sh -p <PROJECT> -n <NAMESPACE>
+```
+
+Navigate to the Container Registry page in the GCP Console to see your image.
+
+==== Deploy the Gatling in K8s
+
+So now your image is in GCP, you can ask k8s to run it in your cluster:
+
+Replace `<TAG>` with your namespace if you did the optional step or use `lab4` if you skipped that part.
+Replace `<HOSTNAME>` with the address of your Ingress
+Replace `<GCP_PROJECT>` with your project, such as `lw-sales`
+
+```
+kubectl run --generator=run-pod/v1 --restart=Never \
+   --image=us.gcr.io/<GCP_PROJECT>/gatling-qps:<TAG> \
+   --env="JAVA_OPTS=-Dqps.fusion.url=https://<HOSTNAME> -Dqps.app=lab4" \
+   gatling-qps -- -s FusionQueryTraffic
+```
+
+This command creates a pod for the Gatling load test runner; no Helm mumbo jumbo needed to run workloads on Kube.
+
+The `--restart=Never` is so that the test doesn't restart after it completes.
+
+Obviously for a real load test, you probably want to run the load tester outside the cluster, such as on a GCP instance.
+
+=== Step 6: Observe the Query Performance in Grafana
+
+While the load test is running, monitor query performance of the lab4 pipeline and Solr.
+
+Tail the pod logs using:
+```
+k logs gatling-qps -f
+```
+
+=== Step 7: Download the GC log for one of your Solr pods
+
+Analyze the GC activity of Solr using gceasy.io.
+
+Download the gc log using:
+```
+k cp <RELEASE>-solr-search-0:/var/solr/logs/solr_gc.log ./solr_gc.log
+```
+What throughput are you getting? What was the object allocation rate during the load test.
+
+
+
+
+
+

@@ -1,0 +1,96 @@
+== Lab 2: Exploring Kubernetes Deployments
+
+In this lab, you'll apply what you learned about Kubernetes deployments to understand how the Fusion query pipeline service works.
+You'll also get a feel for how Helm works behind the scenes to deploy objects into Kubernetes.
+
+Throughout this lab, replace `<RELEASE>` with the release you used in lab1 (-r) and `<HOSTNAME>` with the hostname you provided in lab1 (-h).
+
+=== Step 1: Explore Fusion Objects
+
+Spend a few minutes exploring the pods, deployments, services, secrets, and configmaps in the Fusion cluster. Notice any patterns?
+
+=== Step 2: Fetch the Fusion Helm Chart and Render Locally
+
+List the Helm chart repositories registered to your local Helm client:
+```
+helm repo list
+```
+
+Fetch the latest Fusion 5 Helm chart from our Helm repo and extract it locally:
+```
+helm fetch lucidworks/fusion --version 5.0.3-2 --untar
+```
+Spend a few minutes exploring the `fusion` directory.
+
+Use `helm template` command and the custom values yaml (`lab2_custom_values.yaml`) to render the chart into a Kubernetes deployment manifest locally:
+```
+helm template "LAB2" fusion/charts/query-pipeline --namespace "LAB2-NS" --values lab2_custom_values.yaml > explore_qp.yaml
+```
+
+Explore the Kubernetes objects in the `explore_qp.yaml` file we just created; take notice of where the "LAB2" release value is used, as well as the "LAB2-NS" namespace value.
+
+To guide your exploration, look for the various objects we discussed in this lesson:
+
+* docker image
+* deployment & pod spec
+* configmap(s)
+* secrets
+* liveness / readiness probes
+* labels / annotations
+* service
+* service accounts
+
+=== Step 3: Kill a pod manually
+
+```
+kubectl delete po <ID> --force --grace-period 0
+```
+
+What happens?
+
+=== Step 4: Scale the query pipeline service up and down
+
+Now, let's turn our attention back to the cluster to work with the deployed query pipeline service.
+
+Use kubectl to scale the `<RELEASE>-query-pipeline` deployment up and down
+
+Up:
+```
+k scale deployment <RELEASE>-query-pipeline --replicas=2
+```
+
+Observe K8s behavior while scaling:
+```
+k get pods --watch
+```
+
+Down:
+```
+k scale deployment <RELEASE>-query-pipeline --replicas=1
+```
+
+Be sure to scale back down to 1 before proceeding to the next step
+
+=== Step 5: Verify your pod is serving traffic
+
+Send a request to the query pod via the api-gateway:
+```
+curl -u admin:<PASSWORD> "https://<HOSTNAME>/api/apps/lab1/query/lab1?q=*:*"
+```
+
+Did you know every Fusion microservice exposes Swagger API documentation? Try loading this URL in your browser:
+
+https://<HOSTNAME>/query/swagger-ui.html
+
+=== Step 6: Try to send a request to a query pod directly
+
+Let's bypass the Fusion API gateway and send a request directly to the query service.
+
+Open a port-forward to a query pod and try to execute a query request against it ... what happens?
+
+__Tip: You need to figure out what port the query pod listens on before you can establish a port-forward.__
+
+Once you have a port-forward open, send this request (set the `<PORT>` correctly first):
+```
+curl "http://localhost:<PORT>/query-pipelines/lab1/collections/lab1/select?q=*:*"
+```

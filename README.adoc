@@ -1,0 +1,5 @@
+= Lucidworks Kubernetes Workshop
+
+Each lab directory contains detailed instructions to guide your exploration of the concepts covered in the corresponding lesson.
+
+

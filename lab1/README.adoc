@@ -1,0 +1,144 @@
+== Lab 1: Install Fusion 5 Helm Chart on GKE
+
+In this lab, you'll install Fusion 5 into a unique namespace in a shared GKE cluster. We'll use the cluster you build in this lab for the remaining lessons.
+
+=== Step 0: Join the Workshop Slack Channel
+
+`#lw-k8s-workshop`
+
+=== Step 1: Install the Fusion 5 Helm Chart
+
+Start by reading the script using: `./setup_f5_gke.sh --help`
+
+Use the instructions provided in https://lucidworks.atlassian.net/wiki/spaces/FHG/pages/101580819/Internal+Shared+GKE+Clusters[here] to guide you during the installation process.
+
+Be sure to install into the correct shared cluster depending on your organization using a unique namespace (-n) and use the same value for the release (-r).
+
+The clusters already exist, so do not pass `--create`. We'll add more Solr nodes later, so for getting started, pass `--num-solr 1`.
+
+*IMPORTANT*: In order to not disrupt ongoing PoC / Demos, use the following clusters (-c) for this class only:
+
+* `proserve-trng` instead of `proserve-us-central1`
+* `lw-sales-trng` instead of `lw-sales-us-west1`
+* others todo ...
+
+All other parameters are the same as they are documented in the shared cluster guide.
+
+When calling the `setup_f5_gke.sh` script pass `--version 5.0.2` to indicate you want to install version `5.0.2`.
+
+Here's an example for the training cluster in the `lw-sales` project (you need to choose a different value for -r and -n):
+```
+./setup_f5_gke.sh -c lw-sales-trng -p lw-sales -z us-west1 --num-solr 1 -n tjp -r tjp \
+  -t -h timmay.lucidworkssales.com \
+  --version 5.0.2
+```
+
+The latest script already has version `5.0.3-2` as the default version, but since we want to perform an upgrade after installing to demonstrate how upgrades work with Helm, we'll start with `5.0.2`.
+
+Also, be sure to enable TLS termination at the Ingress for your cluster (using the `-t` `-h <hostname>` options)
+
+Follow the script instructions to create the DNS entry for the Ingress; wait patiently while the TLS cert gets issued for your new cluster.
+
+__Tip: You'll need to use the GCP Console to edit the Cloud DNS records__
+
+=== Step 2: Update custom values yaml with Ingress settings
+
+Make sure you move the contents of the `tls-values.yaml` over to your main custom values yaml file.
+
+```
+cat tls-values.yaml | pbcopy
+```
+
+You should have something like this:
+```
+api-gateway:
+  service:
+    type: "NodePort"
+  ingress:
+    enabled: true
+    host: "<HOSTNAME>"
+    path: "/*"
+    tls:
+      enabled: true
+    annotations:
+      "networking.gke.io/managed-certificates": "tjp-managed-certificate"
+      "kubernetes.io/ingress.class": "gce"
+  externalTrafficPolicy: "Local"
+  nodeSelector:
+    cloud.google.com/gke-nodepool: default-pool
+  pod:
+    annotations:
+      prometheus.io/port: "6764"
+      prometheus.io/scrape: "true"
+```
+
+Take a moment to study the contents of the custom values yaml file created by the setup script.
+
+=== Step 3: Create a New App in the Fusion Admin UI
+
+Login to the Fusion Admin UI and create a new app named `lab1`
+
+Use the Fusion Quickstart to index one of the preloaded datasets into your `lab1` app.
+
+__Tip: To launch the Quickstart, click on the *New here? Get started...* link in the upper left__
+
+=== Step 4: Upgrade to Latest Fusion 5.0.3-2
+
+Set the `CHART_VERSION` variable in your upgrade to `5.0.3-2` (the latest version) and run the upgrade script to upgrade your cluster to the latest updates for 5.0.2
+
+Watch the pods as the upgrade rolls out across the cluster. `k get pods --watch`.
+
+Check the Docker image versions running in the namespace using:
+```
+kubectl get po -o jsonpath='{..image}'  | tr -s '[[:space:]]' '\n' | sort | uniq
+```
+
+__Pro Tip: Add your custom values yaml files and upgrade script to: https://github.com/lucidworks/shared-k8s-internal __
+
+If you notice the admin service does not come up successfully after running the upgrade, you can kill it `k delete po <ID>`.
+This is due to a minor bug in the admin service when only running 1 Solr pod, the admin service can get hung if Solr upgrades at the same time as the admin service (will be fixed 5.1).
+
+=== Step 5: Verify your Installation
+
+Familiarize yourself with the commands used to verify the installation:
+https://github.com/lucidworks/fusion-cloud-native#verifying
+
+=== Step 6: Get a JWT from the Gateway
+
+Lastly, let's request a JWT from the Gateway and decode it so you understand how Fusion 5 stateless sessions work
+
+```
+curl -u admin:<PASSWORD> -XPOST https://<HOSTNAME>/oauth2/token
+```
+
+For instance:
+```
+curl -u admin:password123 -XPOST https://timmay.lucidworkssales.com/oauth2/token
+```
+
+Copy the `access_token` value returned from the POST request.
+
+Decode the JWT using: https://jwt.io/
+
+Should see something like this:
+```
+{
+  "sub": "admin",
+  "permissions": [],
+  "scope": [
+    "openid",
+    "email",
+    "profile"
+  ],
+  "iss": "http://proxy:6764/oauth2/default",
+  "realm": "native",
+  "exp": 1579970817,
+  "userId": "1ad40099-9219-4b00-b727-102703df3ebb",
+  "iat": 1579969017,
+  "permissions_vs": 489,
+  "authorities": [
+    "admin"
+  ]
+}
+```
+
