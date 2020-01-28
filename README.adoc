@@ -4,13 +4,13 @@ Each lab directory contains detailed instructions to guide your exploration of t
 
 Start by choosing a unique namespace and release name for your Fusion install.
 
-Clone this repository: git clone
+Clone this repository: `git clone https://github.com/lucidworks/lw-k8s-workshop.git`
 
 Create a local branch where you can make changes: `git checkout -b <NAMESPACE>`
 
 Run the `update_lab_vars.sh` script to update all the commands in the labs to use your namespace, release, and GCP project ID.
 
-For instance if my desired namespace is tjp (use the same value for the release in shared clusters) is `tjp`, I'd do:
+For instance if my desired namespace is `tjp`, then run:
 ```
 ./update_lab_vars.sh -n tjp -p lw-sales
 ```
