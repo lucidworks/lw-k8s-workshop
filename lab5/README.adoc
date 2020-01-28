@@ -39,5 +39,5 @@ Now that your cluster depends on additional yaml files, you need to keep track o
 
 If you were to run an upgrade without supplying all the yaml files, the missing settings will revert back to defaults.
 
-TODO: Maybe have them do a rollback?
+
 

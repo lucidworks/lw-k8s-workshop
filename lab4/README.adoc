@@ -95,13 +95,9 @@ Navigate to the Container Registry page in the GCP Console to see your image.
 
 So now your image is in GCP, you can ask k8s to run it in your cluster:
 
-Replace `<TAG>` with your namespace if you did the optional step or use `lab4` if you skipped that part.
-Replace `<HOSTNAME>` with the address of your Ingress
-Replace `<GCP_PROJECT>` with your project, such as `lw-sales`
-
 ```
 kubectl run --generator=run-pod/v1 --restart=Never \
-   --image=us.gcr.io/<GCP_PROJECT>/gatling-qps:<TAG> \
+   --image=us.gcr.io/<GCLOUD_PROJECT>/gatling-qps:<NAMESPACE> \
    --env="JAVA_OPTS=-Dqps.fusion.url=https://<HOSTNAME> -Dqps.app=lab4" \
    gatling-qps -- -s FusionQueryTraffic
 ```
