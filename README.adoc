@@ -17,3 +17,11 @@ For instance if my desired namespace is `tjp`, then run:
 
 __The script simply updates various commands in the lab instructions with your namespace, release, project, and hostname to save you some typing.__
 
+Commit and push your branch so you now have personalized instructions for your namespace.
+```
+git commit -am "Add namespace branch for NAME"
+git push
+```
+
+View the README for each lab in github.
+
