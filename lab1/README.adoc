@@ -29,7 +29,7 @@ When calling the `setup_f5_gke.sh` script pass `--version 5.0.2` to indicate you
 
 Here's an example for the training cluster in the `lw-sales` project (you need to choose a different value for -r and -n):
 ```
-./setup_f5_gke.sh -c lw-sales-trng -p lw-sales -z us-west1 --num-solr 1 -n <NAMESPACE> -r <RELEASE> \
+./setup_f5_gke.sh -c <CLUSTER> -p <GCLOUD_PROJECT> -z <ZONE> --num-solr 1 -n <NAMESPACE> -r <RELEASE> \
   -t -h <NAMESPACE>.lucidworkssales.com \
   --version 5.0.2
 ```
