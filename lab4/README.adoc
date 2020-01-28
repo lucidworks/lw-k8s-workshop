@@ -1,6 +1,7 @@
 == Lab 4: Monitoring Query Performance
 
-In this lab, you'll load a dataset from Google Cloud Storage and then run a query load test using Gatling. You'll learn how to monitor query performance using Grafana dashboards.
+In this lab, you'll load a dataset from Google Cloud Storage and then run a query load test using Gatling.
+You'll learn how to monitor query performance using Grafana dashboards.
 
 === Step 1: Login to Grafana and Import Dashboards
 
@@ -120,7 +121,11 @@ Tail the pod logs using:
 k logs gatling-qps -f
 ```
 
-=== Step 7: Download the GC log for one of your Solr pods
+=== Step 7: Forcefully Kill a Pod During the Test
+
+TODO: Does this work as we think?
+
+=== Step 8: Download the GC log for one of your Solr pods
 
 Analyze the GC activity of Solr using gceasy.io.
 

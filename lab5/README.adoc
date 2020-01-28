@@ -1,0 +1,43 @@
+== Lab 5: Configure for High Availability
+
+In this lab, you'll configure your cluster for high availability (HA).
+
+=== Step 1: Configure Resource Limits
+
+Copy the `example-values/resources.yaml` from the `fusion-cloud-native` repo to your directory in `shared-k8s-internal`
+
+Lucidworks provides this example file as a starting point only; a customer's actual resource needs may differ.
+
+Rename `resources.yaml` to `gke_<CLUSTER>_<RELEASE>_resources.yaml`
+
+As we have 3 StatefulSets for Solr in our cluster, configure the resource limits for the `analytics` and `search` in your main custom values yaml file.
+
+Append `gke_<CLUSTER>_<RELEASE>_resources.yaml` to the `MY_VALUES` var in the upgrade script. Run the upgrade script to apply your changes.
+
+Observe pod rescheduling performed by Kubernetes: `k get pods --watch`
+
+=== Step 2: Configure Affinity Rules
+
+Perform the same process as you did in Step 1 but using:
+
+`example-values/affinity.yaml`
+
+Once you apply the affinity rules, observe any pod rescheduling triggered by your update.
+
+=== Step 3: Configure Replicas and HPA
+
+To avoid a major rollout of 10's of new pods on a shared lab cluster, we're only going to configure replica settings for
+the query and gateway services. In a real cluster, you can use `example-values/replicas.yaml` as a starting point.
+
+Note that you should manage replica settings for your various Solr StatefulSets in the main custom values yaml file.
+
+For this step, use `lab5/replicas.yaml` which is a small subset of `example-values/replicas.yaml`.
+
+=== Step 4: Add your new yaml files source control
+
+Now that your cluster depends on additional yaml files, you need to keep track of these in source control.
+
+If you were to run an upgrade without supplying all the yaml files, the missing settings will revert back to defaults.
+
+TODO: Maybe have them do a rollback?
+

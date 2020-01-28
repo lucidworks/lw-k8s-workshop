@@ -2,4 +2,18 @@
 
 Each lab directory contains detailed instructions to guide your exploration of the concepts covered in the corresponding lesson.
 
+Start by choosing a unique namespace and release name for your Fusion install.
+
+Clone this repository: git clone
+
+Create a local branch where you can make changes: `git checkout -b <NAMESPACE>`
+
+Run the `update_lab_vars.sh` script to update all the commands in the labs to use your namespace, release, and GCP project ID.
+
+For instance if my desired namespace is tjp (use the same value for the release in shared clusters) is `tjp`, I'd do:
+```
+./update_lab_vars.sh -n tjp -p lw-sales
+```
+
+__The script simply updates various commands in the lab instructions with your namespace, release, project, and hostname to save you some typing.__
 
