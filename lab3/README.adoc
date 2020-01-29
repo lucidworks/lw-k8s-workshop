@@ -43,8 +43,7 @@ k get pvc
     - name: "analytics"
       javaMem: "-Xmx4g"
       replicaCount: 3
-      volumeClaimTemplates:
-        storageSize: "20Gi"
+      storageSize: "20Gi"
       nodeSelector:
         fusion_node_type: analytics
       tolerations:
@@ -55,8 +54,7 @@ k get pvc
     - name: "search"
       javaMem: "-Xms4g -Xmx4g"
       replicaCount: 3
-      volumeClaimTemplates:
-        storageSize: "20Gi"
+      storageSize: "20Gi"
       nodeSelector:
         fusion_node_type: search
       tolerations:

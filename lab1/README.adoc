@@ -21,16 +21,14 @@ The clusters already exist, so do not pass `--create`. We'll add more Solr nodes
 * `proserve-trng` instead of `proserve-us-central1`
 * `lw-sales-trng` instead of `lw-sales-us-west1`
 
-If you're not in PS or Sales, then the instructor will assign a cluster for you.
-
-All other parameters are the same as they are documented in the shared cluster guide.
+If you're not in PS or Sales, then the instructor will assign one of these clusters for you.
 
 When calling the `setup_f5_gke.sh` script pass `--version 5.0.2` to indicate you want to install version `5.0.2`.
 
 Here's an example for the training cluster in the `lw-sales` project (you need to choose a different value for -r and -n):
 ```
 ./setup_f5_gke.sh -c <CLUSTER> -p <GCLOUD_PROJECT> -z <ZONE> --num-solr 1 -n <NAMESPACE> -r <RELEASE> \
-  -t -h <NAMESPACE>.lucidworkssales.com \
+  -t -h <HOSTNAME> \
   --version 5.0.2
 ```
 
@@ -38,7 +36,7 @@ The latest script already has version `5.0.3-2` as the default version, but sinc
 
 Also, be sure to enable TLS termination at the Ingress for your cluster (using the `-t` `-h <hostname>` options)
 
-Use `<NAMESPACE>.lucidworkssales.com` or `<NAMESPACE>.lucidworksproserve.com` for the hostname as we've preconfigured the Cloud DNS zones for these domain names.
+Use `<HOSTNAME>` for the hostname as we've preconfigured the Cloud DNS zones for these domain names.
 
 Follow the script instructions to create the DNS entry for the Ingress; wait patiently while the TLS cert gets issued for your new cluster.
 
