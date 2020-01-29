@@ -8,7 +8,7 @@ Copy the `example-values/resources.yaml` from the `fusion-cloud-native` repo to 
 
 Lucidworks provides this example file as a starting point only; a customer's actual resource needs may differ.
 
-Rename `resources.yaml` to `gke_lw-sales-trng_tjp_resources.yaml`
+Rename `resources.yaml` to `gke_lw-sales-trng_tjp_fusion_resources.yaml`
 
 As we have 3 StatefulSets for Solr in our cluster, configure the resource limits for the `analytics` and `search` in your main custom values yaml file.
 
