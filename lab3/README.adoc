@@ -27,7 +27,7 @@ How big is the volume? Where is this specified?
 What directory is the volume mounted at on the pod? (hint: `lsblk`)
 
 ```
-kubectl exec -it <RELEASE>-solr-0 -- /bin/bash
+kubectl exec -it ashum-solr-0 -- /bin/bash
 ```
 
 What is the access mode used for this volume?
@@ -78,7 +78,7 @@ The update may take a while to rollout since the cluster needs to expand to sche
 
 After the new Solr pods rollout, verify the nodes all Solr pods are running on:
 ```
-k get pods -o wide | grep <RELEASE>-solr | grep -v exporter | sed 's/   */:/g' | cut -d : -f 7 | sort | uniq | wc -l
+k get pods -o wide | grep ashum-solr | grep -v exporter | sed 's/   */:/g' | cut -d : -f 7 | sort | uniq | wc -l
 ```
 Should be `7` ... why?
 
@@ -88,7 +88,7 @@ Verify each pod in the search partition runs in a different availability zone, s
 
 Review the Solr auto-scaling policy in policy.json (fusion-cloud-native repo)
 
-Open a port-forward to one of your Solr pods: `k port-forward <RELEASE>-solr-0 8983`
+Open a port-forward to one of your Solr pods: `k port-forward ashum-solr-0 8983`
 
 Use the `update_policy.sh` script
 
@@ -112,7 +112,7 @@ A headless service identifies the IP for all pods in a StatefulSet; every Statef
 
 ```
 k run dnsutils --image=tutum/dnsutils --generator=run-pod/v1 --command -- sleep infinity
-k exec dnsutils nslookup <RELEASE>-solr-search-headless
+k exec dnsutils nslookup ashum-solr-search-headless
 ```
 
 

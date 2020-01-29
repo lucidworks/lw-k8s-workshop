@@ -10,7 +10,7 @@ See instructions here: https://github.com/lucidworks/fusion-cloud-native#grafana
 
 You can expose Grafana to the internet using:
 ```
-kubectl expose deployment <RELEASE>-graf-grafana --type=LoadBalancer --name=grafana
+kubectl expose deployment ashum-graf-grafana --type=LoadBalancer --name=grafana
 ```
 
 How do you get the external IP?
@@ -59,7 +59,7 @@ __NOTE: The spacing and indentation is important for embedding JSON in YAML corr
 
 After running the upgrade, inspect the warming query configmap:
 ```
-k get cm <RELEASE>-query-pipeline-warming-queries -o yaml --export
+k get cm ashum-query-pipeline-warming-queries -o yaml --export
 ```
 
 *You'll have to delete the running query pod(s) to pickup the warming query configmap changes.*
@@ -81,12 +81,12 @@ So let's load this gatling simulation into the cluster using Docker as this will
 If you have Docker installed on your local workstation, then let's build a custom image and push it to GCP's Docker registry
 
 ```
-docker build -t gatling-qps:<NAMESPACE> -f docker/Dockerfile .
+docker build -t gatling-qps:ashum -f docker/Dockerfile .
 ```
 
 Run a script to tag and push the image from local to GCP:
 ```
-./gcp_docker.sh -p <PROJECT> -n <NAMESPACE>
+./gcp_docker.sh -p <PROJECT> -n ashum
 ```
 
 Navigate to the Container Registry page in the GCP Console to see your image.
@@ -97,8 +97,8 @@ So now your image is in GCP, you can ask k8s to run it in your cluster:
 
 ```
 kubectl run --generator=run-pod/v1 --restart=Never \
-   --image=us.gcr.io/<GCLOUD_PROJECT>/gatling-qps:<NAMESPACE> \
-   --env="JAVA_OPTS=-Dqps.fusion.url=https://<HOSTNAME> -Dqps.app=lab4" \
+   --image=us.gcr.io/proserve/gatling-qps:ashum \
+   --env="JAVA_OPTS=-Dqps.fusion.url=https://ashum.lucidworksproserve.com -Dqps.app=lab4" \
    gatling-qps -- -s FusionQueryTraffic
 ```
 
@@ -127,7 +127,7 @@ Analyze the GC activity of Solr using gceasy.io.
 
 Download the gc log using:
 ```
-k cp <RELEASE>-solr-search-0:/var/solr/logs/solr_gc.log ./solr_gc.log
+k cp ashum-solr-search-0:/var/solr/logs/solr_gc.log ./solr_gc.log
 ```
 What throughput are you getting? What was the object allocation rate during the load test.
 
