@@ -23,5 +23,5 @@ git commit -am "Add namespace branch for NAME"
 git push
 ```
 
-View the README for each lab in github.
+View the README for each lab in github: https://github.com/lucidworks/lw-k8s-workshop/tree/<NAMESPACE>
 
