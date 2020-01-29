@@ -29,8 +29,8 @@ When calling the `setup_f5_gke.sh` script pass `--version 5.0.2` to indicate you
 
 Here's an example for the training cluster in the `lw-sales` project (you need to choose a different value for -r and -n):
 ```
-./setup_f5_gke.sh -c <CLUSTER> -p <GCLOUD_PROJECT> -z <ZONE> --num-solr 1 -n <NAMESPACE> -r <RELEASE> \
-  -t -h <NAMESPACE>.lucidworkssales.com \
+./setup_f5_gke.sh -c lw-sales-trng -p lw-sales -z us-west1 --num-solr 1 -n tjp -r tjp \
+  -t -h tjp.lucidworkssales.com \
   --version 5.0.2
 ```
 
@@ -38,7 +38,7 @@ The latest script already has version `5.0.3-2` as the default version, but sinc
 
 Also, be sure to enable TLS termination at the Ingress for your cluster (using the `-t` `-h <hostname>` options)
 
-Use `<NAMESPACE>.lucidworkssales.com` or `<NAMESPACE>.lucidworksproserve.com` for the hostname as we've preconfigured the Cloud DNS zones for these domain names.
+Use `tjp.lucidworkssales.com` or `tjp.lucidworksproserve.com` for the hostname as we've preconfigured the Cloud DNS zones for these domain names.
 
 Follow the script instructions to create the DNS entry for the Ingress; wait patiently while the TLS cert gets issued for your new cluster.
 
@@ -59,7 +59,7 @@ api-gateway:
     type: "NodePort"
   ingress:
     enabled: true
-    host: "<HOSTNAME>"
+    host: "tjp.lucidworkssales.com"
     path: "/*"
     tls:
       enabled: true
@@ -117,7 +117,7 @@ https://github.com/lucidworks/fusion-cloud-native#verifying
 Lastly, let's request a JWT from the Gateway and decode it so you understand how Fusion 5 stateless sessions work
 
 ```
-curl -u admin:<PASSWORD> -XPOST https://<HOSTNAME>/oauth2/token
+curl -u admin:<PASSWORD> -XPOST https://tjp.lucidworkssales.com/oauth2/token
 ```
 
 For instance:
