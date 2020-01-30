@@ -14,6 +14,8 @@ git clone https://github.com/lucidworks/fusion-cloud-native.git
 cd fusion-cloud-native
 ```
 
+*IMPORTANT: If you already have this github repo cloned locally, please do a `git pull` to ensure you have the latest updates.*
+
 Cloning the github repo is preferred so that you can pull in updates to the scripts, but if you are not a git user, then you can download the project: https://github.com/lucidworks/fusion-cloud-native/archive/master.zip. Once downloaded, extract the zip and cd into the `fusion-cloud-native-master` directory.
 
 Start by reading the script using: `./setup_f5_gke.sh --help`
