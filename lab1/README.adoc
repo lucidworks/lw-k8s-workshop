@@ -24,7 +24,7 @@ When calling the `setup_f5_gke.sh` script pass `--version 5.0.2` to indicate you
 
 Here's an example for the training cluster in the `proserve` project:
 ```
-./setup_f5_gke.sh -c <CLUSTER> -p <GCLOUD_PROJECT> -z <ZONE> -n <NAMESPACE> --version 5.0.2
+./setup_f5_gke.sh -c proserve-trng -p proserve -z us-west1 -n shs2 --version 5.0.2
 ```
 
 The latest script already has version `5.0.3-2` as the default version, but since we want to perform an upgrade after installing to demonstrate how upgrades work with Helm, we'll start with `5.0.2`.
@@ -41,7 +41,7 @@ Login to the Fusion Admin UI using the Gateway address shown by the script and c
 
 The setup script will display the external IP for your cluster, but you can also do:
 ```
-kubectl --namespace <NAMESPACE> get service proxy -o jsonpath='{.status.loadBalancer.ingress[0].hostname}'
+kubectl --namespace shs2 get service proxy -o jsonpath='{.status.loadBalancer.ingress[0].hostname}'
 ```
 The port is `6764`
 

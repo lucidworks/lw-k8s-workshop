@@ -3,7 +3,7 @@
 In this lab, you'll apply what you learned about Kubernetes deployments to understand how the Fusion query pipeline service works.
 You'll also get a feel for how Helm works behind the scenes to deploy objects into Kubernetes.
 
-Throughout this lab, replace `<RELEASE>` with the release you used in lab1 (-r) and `<HOSTNAME>` with the hostname you provided in lab1 (-h).
+Throughout this lab, replace `shs2` with the release you used in lab1 (-r) and `shs2.lucidworksproserve.com` with the hostname you provided in lab1 (-h).
 
 === Step 1: Explore Fusion Objects
 
@@ -52,11 +52,11 @@ What happens?
 
 Now, let's turn our attention back to the cluster to work with the deployed query pipeline service.
 
-Use kubectl to scale the `<RELEASE>-query-pipeline` deployment up and down
+Use kubectl to scale the `shs2-query-pipeline` deployment up and down
 
 Up:
 ```
-k scale deployment <RELEASE>-query-pipeline --replicas=2
+k scale deployment shs2-query-pipeline --replicas=2
 ```
 
 Observe K8s behavior while scaling:
@@ -66,7 +66,7 @@ k get pods --watch
 
 Down:
 ```
-k scale deployment <RELEASE>-query-pipeline --replicas=1
+k scale deployment shs2-query-pipeline --replicas=1
 ```
 
 Be sure to scale back down to 1 before proceeding to the next step
@@ -75,12 +75,12 @@ Be sure to scale back down to 1 before proceeding to the next step
 
 Send a request to the query pod via the api-gateway:
 ```
-curl -u admin:<PASSWORD> "https://<HOSTNAME>/api/apps/lab1/query/lab1?q=*:*"
+curl -u admin:<PASSWORD> "https://shs2.lucidworksproserve.com/api/apps/lab1/query/lab1?q=*:*"
 ```
 
 Did you know every Fusion microservice exposes Swagger API documentation? Try loading this URL in your browser:
 
-https://<HOSTNAME>/query/swagger-ui.html
+https://shs2.lucidworksproserve.com/query/swagger-ui.html
 
 === Step 6: Try to send a request to a query pod directly
 
