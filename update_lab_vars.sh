@@ -73,7 +73,6 @@ ZONE="us-west1"
 HOSTNAME="${NAMESPACE}.lucidworkssales.com"
 if [ "${GCLOUD_PROJECT}" == "proserve" ]; then
   HOSTNAME="${NAMESPACE}.lucidworksproserve.com"
-  ZONE="us-central1"
 fi
 
 declare -a labs=("lab1" "lab2" "lab3" "lab4" "lab5" "lab6")
