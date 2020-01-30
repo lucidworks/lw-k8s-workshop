@@ -8,86 +8,50 @@ In this lab, you'll install Fusion 5 into a unique namespace in a shared GKE clu
 
 === Step 1: Install the Fusion 5 Helm Chart
 
+Start by cloning the fusion-cloud-native repo:
+```
+git clone https://github.com/lucidworks/fusion-cloud-native.git
+cd fusion-cloud-native
+```
+
+Cloning the github repo is preferred so that you can pull in updates to the scripts, but if you are not a git user, then you can download the project: https://github.com/lucidworks/fusion-cloud-native/archive/master.zip. Once downloaded, extract the zip and cd into the `fusion-cloud-native-master` directory.
+
 Start by reading the script using: `./setup_f5_gke.sh --help`
-
-Use the instructions provided in https://lucidworks.atlassian.net/wiki/spaces/FHG/pages/101580819/Internal+Shared+GKE+Clusters[here] to guide you during the installation process.
-
-Be sure to install into the correct shared cluster depending on your organization using a unique namespace (-n) and use the same value for the release (-r).
-
-The clusters already exist, so do not pass `--create`. We'll add more Solr nodes later, so for getting started, pass `--num-solr 1`.
-
-*IMPORTANT*: In order to not disrupt ongoing PoC / Demos, use the following clusters (-c) for this class only:
-
-* `proserve-trng` instead of `proserve-us-central1`
-* `lw-sales-trng` instead of `lw-sales-us-west1`
-
-If you're not in PS or Sales, then the instructor will assign one of these clusters for you.
 
 When calling the `setup_f5_gke.sh` script pass `--version 5.0.2` to indicate you want to install version `5.0.2`.
 
-Here's an example for the training cluster in the `lw-sales` project (you need to choose a different value for -r and -n):
+Here's an example for the training cluster in the `proserve` project (you need to choose a different value for -r and -n):
 ```
-./setup_f5_gke.sh -c <CLUSTER> -p <GCLOUD_PROJECT> -z <ZONE> --num-solr 1 -n <NAMESPACE> -r <RELEASE> \
-  -t -h <HOSTNAME> \
-  --version 5.0.2
+./setup_f5_gke.sh -c <CLUSTER> -p <GCLOUD_PROJECT> -z <ZONE> -n <NAMESPACE> -r <RELEASE> --version 5.0.2
 ```
 
 The latest script already has version `5.0.3-2` as the default version, but since we want to perform an upgrade after installing to demonstrate how upgrades work with Helm, we'll start with `5.0.2`.
 
-Also, be sure to enable TLS termination at the Ingress for your cluster (using the `-t` `-h <hostname>` options)
+Make sure all the pods are healthy and running by watching the cluster rollout using: `kubectl get pods --watch`
 
-Use `<HOSTNAME>` for the hostname as we've preconfigured the Cloud DNS zones for these domain names.
+Hit `ctrl-c` once all the pods are running.
 
-Follow the script instructions to create the DNS entry for the Ingress; wait patiently while the TLS cert gets issued for your new cluster.
+The setup script reports the external IP for the Fusion API Gateway service (aka `proxy`), which runs on port 6764.
 
-__Tip: You'll need to use the GCP Console to edit the Cloud DNS records__
+=== Step 2: Create a New App in the Fusion Admin UI
 
-=== Step 2: Update custom values yaml with Ingress settings
+Login to the Fusion Admin UI using the Gateway address shown by the script and create a new app named `lab1`.
 
-Make sure you move the contents of the `tls-values.yaml` over to your main custom values yaml file.
-
+The setup script will display the external IP for your cluster, but you can also do:
 ```
-cat tls-values.yaml | pbcopy
+kubectl --namespace <NAMESPACE> get service proxy -o jsonpath='{.status.loadBalancer.ingress[0].hostname}'
 ```
-
-You should have something like this:
-```
-api-gateway:
-  service:
-    type: "NodePort"
-  ingress:
-    enabled: true
-    host: "<HOSTNAME>"
-    path: "/*"
-    tls:
-      enabled: true
-    annotations:
-      "networking.gke.io/managed-certificates": "tjp-managed-certificate"
-      "kubernetes.io/ingress.class": "gce"
-  externalTrafficPolicy: "Local"
-  nodeSelector:
-    cloud.google.com/gke-nodepool: default-pool
-  pod:
-    annotations:
-      prometheus.io/port: "6764"
-      prometheus.io/scrape: "true"
-```
-
-Take a moment to study the contents of the custom values yaml file created by the setup script.
-
-=== Step 3: Create a New App in the Fusion Admin UI
-
-Login to the Fusion Admin UI and create a new app named `lab1`
+The port is `6764`
 
 Use the Fusion Quickstart to index one of the preloaded datasets into your `lab1` app.
 
 __Tip: To launch the Quickstart, click on the *New here? Get started...* link in the upper left__
 
-=== Step 4: Upgrade to Latest Fusion 5.0.3-2
+=== Step 3: Upgrade to Latest Fusion 5.0.3-2
 
 Set the `CHART_VERSION` variable in your upgrade to `5.0.3-2` (the latest version) and run the upgrade script to upgrade your cluster to the latest updates for 5.0.2
 
-Watch the pods as the upgrade rolls out across the cluster. `k get pods --watch`.
+Watch the pods as the upgrade rolls out across the cluster. `kubectl get pods --watch`.
 
 Check the Docker image versions running in the namespace using:
 ```
@@ -99,7 +63,7 @@ __Pro Tip: Add your custom values yaml files and upgrade script to: https://gith
 If you notice the admin service does not come up successfully after running the upgrade, you can kill it `k delete po <ID>`.
 This is due to a minor bug in the admin service when only running 1 Solr pod, the admin service can get hung if Solr upgrades at the same time as the admin service (will be fixed 5.1).
 
-=== Step 5: Verify your Installation
+=== Step 4: Verify your Installation
 
 Create an alias for `kubectl`:
 
@@ -110,7 +74,7 @@ alias k=kubectl
 Familiarize yourself with the commands used to verify the installation:
 https://github.com/lucidworks/fusion-cloud-native#verifying
 
-=== Step 6: Get a JWT from the Gateway
+=== Step 5: Get a JWT from the Gateway
 
 Lastly, let's request a JWT from the Gateway and decode it so you understand how Fusion 5 stateless sessions work
 
