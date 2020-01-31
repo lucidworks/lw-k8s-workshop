@@ -37,6 +37,8 @@ k get pvc
 
 === Step 3: Define a search and analytics Solr StatefulSets in custom values yaml
 
+Add the following `nodePools` yaml under the existing `solr:` section of your custom values yaml.
+
 ```
   nodePools:
     - name: ""
@@ -65,7 +67,7 @@ k get pvc
 ```
 Don't worry about the `-name: ""` part as that specifies the suffix for the initial StatefulSet that was deployed during the initial installation.
 
-Add the `-Dfusion_node_type=system` property to the `javaMem` setting for the initial StatefulSet.
+Add the `-Dfusion_node_type=system` property to the `javaMem` setting for the initial StatefulSet. The new statefulsets (analytics, search) already get the system property set by the Helm chart.
 
 Tune Solr's GC settings by adding `solrGcTune` under the `solr:` section:
 ```
@@ -83,6 +85,11 @@ k get pods -o wide | grep <RELEASE>-solr | grep -v exporter | sed 's/   */:/g' |
 Should be `7` ... why?
 
 Verify each pod in the search partition runs in a different availability zone, such as `us-west1-a`
+
+To see the `fusion_node_type` label on the nodes, do:
+```
+k get nodes -L fusion_node_type
+```
 
 === Step 4: Upload Solr auto-scaling policy to leverage the different StatefulSets
 

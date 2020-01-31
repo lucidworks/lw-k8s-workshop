@@ -51,7 +51,11 @@ __Tip: To launch the Quickstart, click on the *New here? Get started...* link in
 
 === Step 3: Upgrade to Latest Fusion 5.0.3-2
 
-Set the `CHART_VERSION` variable in your upgrade to `5.0.3-2` (the latest version) and run the upgrade script to upgrade your cluster to the latest updates for 5.0.2
+The setup script created a custom values yaml
+
+The setup script created a new shell script named `gke_<CLUSTER>_<NAMESPACE>_fusion_upgrade.sh` in the `fusion-cloud-native` directory.
+
+Edit the update script to set the `CHART_VERSION` variable in your upgrade to `5.0.3-2` (the latest version) and run the upgrade script to upgrade your cluster to the latest updates for 5.0.2
 
 Watch the pods as the upgrade rolls out across the cluster. `kubectl get pods --watch`.
 

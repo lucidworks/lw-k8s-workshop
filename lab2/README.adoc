@@ -94,3 +94,8 @@ Once you have a port-forward open, send this request (set the `<PORT>` correctly
 ```
 curl "http://localhost:<PORT>/query-pipelines/lab1/collections/lab1/select?q=*:*"
 ```
+
+If you take the JWT and send it back in the Authorization header (Bearer scheme), such as:
+```
+curl -H "Authorization: Bearer <JWT>" "http://localhost:<PORT>/query-pipelines/lab1/collections/lab1/select?q=*:*"
+```
