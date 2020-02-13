@@ -1,125 +1,119 @@
-== Lab 3: Multiple Solr StatefulSets
+== Lab 3: Exploring Kubernetes Deployments
 
-In this lab, you'll scale out Solr by adding the search and analytics StatefulSets and configure the new Solr pods to run on different nodes.
-You'll use a Solr auto-scaling policy to govern the assignment of replicas to the correct Solr pods for workload isolation and multi-zone high availability.
+In this lab, you'll apply what you learned about Kubernetes deployments to understand how the Fusion query pipeline service works.
+You'll also get a feel for how Helm works behind the scenes to deploy objects into Kubernetes.
 
-=== Step 1: Manually Delete the Solr pod
+=== Step 1: Explore Fusion Objects
 
-Get the IP address of your Solr pod:
+Spend a few minutes exploring the pods, deployments, services, secrets, and configmaps in the Fusion cluster.
+
+[width="80%",cols="3,5",options="header"]
+|=========================================================
+|Action|Command
+|List pods in namespace|k get po
+|List pods and nodes|k get po -o wide
+|List deployments|k get deploy
+|List services|k get svc
+|List statefulsets|k get sts
+|List config maps|k get cm
+|=========================================================
+
+=== Step 2: Fetch the Fusion Helm Chart and Render Locally
+
+List the Helm chart repositories registered to your local Helm client:
 ```
-k get pods -l app.kubernetes.io/name=solr -o wide
-```
-
-Delete a Solr pod manually and watch it come back.
-
-```
-kubectl delete po <ID>
-```
-
-Verify the data in Solr still exists and Solr comes back healthy.
-
-What's the new IP?
-
-=== Step 2: Inspect the Persistent Volume Details for your Solr pod
-
-How big is the volume? Where is this specified?
-
-What directory is the volume mounted at on the pod? (hint: `lsblk`)
-
-```
-kubectl exec -it <RELEASE>-solr-0 -- /bin/bash
+helm repo list
 ```
 
-What is the access mode used for this volume?
+Fetch the latest Fusion 5 Helm chart from our Helm repo and extract it locally:
 ```
-k get pvc
+helm fetch lucidworks/fusion --version 5.0.3-2 --untar
 ```
+Spend a few minutes exploring the `fusion` directory.
 
-=== Step 3: Define a search and analytics Solr StatefulSets in custom values yaml
-
-Add the following `nodePools` yaml under the existing `solr:` section of your custom values yaml.
-
+Use `helm template` command and the custom values yaml (`lab3_custom_values.yaml`) to render the chart into a Kubernetes deployment manifest locally:
 ```
-  nodePools:
-    - name: ""
-    - name: "analytics"
-      javaMem: "-Xmx4g"
-      replicaCount: 3
-      storageSize: "20Gi"
-      nodeSelector:
-        fusion_node_type: analytics
-      tolerations:
-      - key: "fusion_node_type"
-        operator: "Equal"
-        value: "analytics"
-        effect: "NoSchedule"
-    - name: "search"
-      javaMem: "-Xms4g -Xmx4g"
-      replicaCount: 3
-      storageSize: "20Gi"
-      nodeSelector:
-        fusion_node_type: search
-      tolerations:
-      - key: "fusion_node_type"
-        operator: "Equal"
-        value: "search"
-        effect: "NoSchedule"
+helm template "LAB3" fusion/charts/query-pipeline --namespace "LAB3-NS" --values lab3_custom_values.yaml > explore_qp.yaml
 ```
-Don't worry about the `-name: ""` part as that specifies the suffix for the initial StatefulSet that was deployed during the initial installation.
+`LAB3` is the Helm "release" label. When you installed your cluster, the setup script used the namespace for the release, which is a good practice to use in k8s clusters that run multiple Fusion namespaces.
 
-Add the `-Dfusion_node_type=system` property to the `javaMem` setting for the initial StatefulSet. The new statefulsets (analytics, search) already get the system property set by the Helm chart.
+Explore the Kubernetes objects in the `explore_qp.yaml` file we just created; take notice of where the "LAB3" release value is used, as well as the "LAB3-NS" namespace value.
 
-Tune Solr's GC settings by adding `solrGcTune` under the `solr:` section:
-```
-  solrGcTune: "-XX:+UseG1GC -XX:+PerfDisableSharedMem -XX:+ParallelRefProcEnabled -XX:MaxGCPauseMillis=150 -XX:+UseLargePages -XX:+AlwaysPreTouch"
-```
+To guide your exploration, look for the various objects we discussed in this lesson:
 
-Apply your changes to the custom values yaml using the upgrade script. Observe how k8s rolls out the new Solr pods using: `k get pods --watch`
+* docker image
+* deployment & pod spec
+* configmap(s)
+* secrets
+* liveness / readiness probes
+* labels / annotations
+* service
+* service accounts
 
-The update may take a while to rollout since the cluster needs to expand to schedule the new Solr pods. I've configured the `search` and `analytics` node pools to auto-scale down to zero, so we may have to wait a bit for the nodes to come up.
+=== Step 3: Kill a pod manually
 
-After the new Solr pods rollout, verify the nodes all Solr pods are running on:
-```
-k get pods -o wide | grep <RELEASE>-solr | grep -v exporter | sed 's/   */:/g' | cut -d : -f 7 | sort | uniq | wc -l
-```
-Should be `7` ... why?
-
-Verify each pod in the search partition runs in a different availability zone, such as `us-west1-a`
-
-To see the `fusion_node_type` label on the nodes, do:
-```
-k get nodes -L fusion_node_type
-```
-
-=== Step 4: Upload Solr auto-scaling policy to leverage the different StatefulSets
-
-Review the Solr auto-scaling policy in policy.json (fusion-cloud-native repo)
-
-Open a port-forward to one of your Solr pods: `k port-forward <RELEASE>-solr-0 8983`
-
-Use the `update_policy.sh` script
-
-=== Step 5: Create a lab3 app in Fusion
-
-Tail the admin service logs and grep for `lab3` so you can see what happens when Fusion creates an app.
+Now, let's turn our attention back to the cluster to work with the deployed query pipeline service. Start by killing the query pod manually. You'll have to lookup the ID of the query pod using `k get pods`
 
 ```
-k logs <ID> -f --tail 100 | grep lab3
+kubectl delete po <ID> --force --grace-period 0
 ```
 
-Use the Solr admin console (http://localhost:8983) to see how the collections were assigned across Solr pods.
+What happens?
 
-=== Step 6: Fix collection layout
+=== Step 4: Scale the query pipeline service up and down
 
-Run the `update_app_coll_layout.sh` script to fix the collection layout. Verify all replicas for all collections in the lab3 app are on the correct nodes.
+Use kubectl to scale the `${LW_K8S_RELEASE}-query-pipeline` deployment up and down
 
-=== Step 7: Inspect the headless service
-
-A headless service identifies the IP for all pods in a StatefulSet; every StatefulSet needs a headless service so K8s can expose a stable hostname for every pod using DNS.
-
+Up:
 ```
-k run dnsutils --image=tutum/dnsutils --generator=run-pod/v1 --command -- sleep infinity
-k exec dnsutils nslookup <RELEASE>-solr-search-headless
+k scale deployment ${LW_K8S_RELEASE}-query-pipeline --replicas=2
 ```
 
+Observe K8s behavior while scaling:
+```
+k get pods --watch
+```
 
+Down:
+```
+k scale deployment ${LW_K8S_RELEASE}-query-pipeline --replicas=1
+```
+
+Be sure to scale back down to 1 before proceeding to the next step
+
+=== Step 5: Verify your pod is serving traffic
+
+Send a request to the query pod via the api-gateway:
+```
+curl -u admin:<PASSWORD> "http://${LW_K8S_GATEWAY_IP}:6764/api/apps/lab1/query/lab1?q=*:*"
+```
+Remember you can get the IP for the gateway using:
+```
+kubectl --namespace ${LW_K8S_NAMESPACE} get service proxy -o jsonpath='{.status.loadBalancer.ingress[0].ip}'
+```
+
+Did you know every Fusion microservice exposes Swagger API documentation? Try loading this URL in your browser:
+```
+open "http://${LW_K8S_GATEWAY_IP}:6764/query/swagger-ui.html"
+```
+
+__All Fusion microservices that support public APIs expose Swagger documentation similar to the query service.__
+
+=== Step 6: Try to send a request to a query pod directly
+
+Let's bypass the Fusion API gateway and send a request directly to the query service.
+
+Open a port-forward to a query pod and try to execute a query request against it ... what happens?
+
+__Tip: You need to figure out what port the query pod listens on before you can establish a port-forward.__
+
+Once you have a port-forward open, send this request (set the `<PORT>` correctly first):
+```
+curl "http://localhost:<PORT>/query-pipelines/lab1/collections/lab1/select?q=*:*"
+```
+
+The request should fail with a 401 error. If you take the JWT and send it back in the Authorization header (Bearer scheme), such as:
+```
+curl -H "Authorization: Bearer <JWT>" "http://localhost:<PORT>/query-pipelines/lab1/collections/lab1/select?q=*:*"
+```
+The request should succeed.
