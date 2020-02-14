@@ -79,12 +79,21 @@ declare -a labs=("lab1" "lab2" "lab3" "lab4" "lab5" "lab6")
 for i in "${labs[@]}"
 do
   next="${i}/README.adoc"
-  sed -i ''  -e "s|<NAMESPACE>|${NAMESPACE}|g" $next
-  sed -i ''  -e "s|<HOSTNAME>|${HOSTNAME}|g" $next
-  sed -i ''  -e "s|<RELEASE>|${NAMESPACE}|g" $next
-  sed -i ''  -e "s|<CLUSTER>|${CLUSTER}|g" $next
-  sed -i ''  -e "s|<GCLOUD_PROJECT>|${GCLOUD_PROJECT}|g" $next
-  sed -i ''  -e "s|<ZONE>|${ZONE}|g" $next
+  if [[ "$OSTYPE" == "darwin"* ]]; then
+    sed -i ''  -e "s|<NAMESPACE>|${NAMESPACE}|g" $next
+    sed -i ''  -e "s|<HOSTNAME>|${HOSTNAME}|g" $next
+    sed -i ''  -e "s|<RELEASE>|${NAMESPACE}|g" $next
+    sed -i ''  -e "s|<CLUSTER>|${CLUSTER}|g" $next
+    sed -i ''  -e "s|<GCLOUD_PROJECT>|${GCLOUD_PROJECT}|g" $next
+    sed -i ''  -e "s|<ZONE>|${ZONE}|g" $next
+  else
+    sed -i  -e "s|<NAMESPACE>|${NAMESPACE}|g" $next
+    sed -i  -e "s|<HOSTNAME>|${HOSTNAME}|g" $next
+    sed -i  -e "s|<RELEASE>|${NAMESPACE}|g" $next
+    sed -i  -e "s|<CLUSTER>|${CLUSTER}|g" $next
+    sed -i  -e "s|<GCLOUD_PROJECT>|${GCLOUD_PROJECT}|g" $next
+    sed -i  -e "s|<ZONE>|${ZONE}|g" $next
+  fi
 done
 
 
