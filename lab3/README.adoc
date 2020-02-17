@@ -60,26 +60,6 @@ kubectl delete po <ID> --force --grace-period 0
 
 What happens?
 
-
-TODO:
-
-=== Step 7: Upgrade to Latest Fusion 5.0.3-2
-
-The setup script created a custom values yaml file and a new shell script named `gke_${LW_K8S_CLUSTER}_${LW_K8S_NAMESPACE}_fusion_upgrade.sh` in the `fusion-cloud-native` directory.
-
-Edit the update script to set the `CHART_VERSION` variable in your upgrade to `5.0.3-2` (the latest version) and run the upgrade script to upgrade your cluster to the latest updates for 5.0.2
-
-Watch the pods as the upgrade rolls out across the cluster. `kubectl get pods --watch`.
-
-Check the Docker image versions running in the namespace using:
-```
-kubectl get po -o jsonpath='{..image}'  | tr -s '[[:space:]]' '\n' | sort | uniq
-```
-
-If you notice the admin service does not come up successfully after running the upgrade, you can kill it `k delete po <ID>`.
-This is due to a minor bug in the admin service when only running 1 Solr pod, the admin service can get hung if Solr upgrades at the same time as the admin service.
-
-
 === Step 4: Scale the query pipeline service up and down
 
 Use kubectl to scale the `${LW_K8S_RELEASE}-query-pipeline` deployment up and down

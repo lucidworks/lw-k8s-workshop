@@ -164,12 +164,35 @@ Create an alias for `kubectl`:
 alias k=kubectl
 ```
 
+Check the Docker image versions running in the namespace using:
+```
+kubectl get po -o jsonpath='{..image}'  | tr -s '[[:space:]]' '\n' | sort | uniq
+```
+
 Familiarize yourself with the commands used to verify the installation:
 https://github.com/lucidworks/fusion-cloud-native#verifying
 
-=== Step 8: Get a JWT from the Gateway
+=== Step 8: Apply Config Changes & Upgrade
 
-Lastly, let's request a JWT from the Gateway and decode it so you understand how Fusion 5 stateless sessions work.
+The setup script created a custom values yaml file (`gke_<CLUSTER>_<NAMESPACE>_fusion_values.yaml`) and a new shell script named `gke_<CLUSTER>_<NAMESPACE>_fusion_upgrade.sh` in the `fusion-cloud-native` directory.
+
+Take a moment to find this upgrade script and inspect its contents.
+
+Edit the custom values yaml to change the default gateway timeout to be 1 hour by adding the following setting under the `api-gateway:` section:
+
+```
+  jwt:
+    token:
+      expirationSecs: 3600
+```
+
+After making your change to the custom values yaml, run the upgrade script to apply these changes.
+
+Watch the updated `api-gateway` pods as the upgrade rolls out across the cluster. `kubectl get pods --watch`.
+
+=== Step 9: Get a JWT from the Gateway
+
+Lastly, let's request a JWT from the Gateway and decode it to get a feel for how JWT's work in Fusion 5.
 
 ```
 curl -u admin:<PASSWORD> -XPOST "http://${LW_K8S_GATEWAY_IP}:6764/oauth2/token"
@@ -203,4 +226,4 @@ Should see something like this:
 
 The JWT decoder will report an error related to the public key; this is benign and simply due to the public key Fusion uses to digitally sign JWTs is not exposed externally.
 
-The JWT is used as a session cookie for the Fusion Admin UI.
+The JWT is also used as a session cookie for the Fusion Admin UI.
