@@ -20,6 +20,9 @@ Spend a few minutes exploring the pods, deployments, services, secrets, and conf
 
 === Step 2: Fetch the Fusion Helm Chart and Render Locally
 
+In this step, we're going to take a brief departure from working with your live cluster and work with the Fusion helm chart locally.
+The purpose of this step is to help you understand what happens behind the scenes with Helm.
+
 List the Helm chart repositories registered to your local Helm client:
 ```
 helm repo list
@@ -27,17 +30,22 @@ helm repo list
 
 Fetch the latest Fusion 5 Helm chart from our Helm repo and extract it locally:
 ```
-helm fetch lucidworks/fusion --version 5.0.3-2 --untar
+helm fetch lucidworks/fusion --version 5.0.3-2 --untar --untardir tmp
+cd tmp/fusion
 ```
-Spend a few minutes exploring the `fusion` directory.
 
-Use `helm template` command and the custom values yaml (`lab3_custom_values.yaml`) to render the chart into a Kubernetes deployment manifest locally:
+Spend a few minutes exploring the `fusion` directory; notice how there's a chart directory (under `charts`) for every Fusion microservice running in your cluster.
+
+Use `helm template` command to render the chart into a Kubernetes deployment manifest locally:
 ```
-helm template "LAB3" fusion/charts/query-pipeline --namespace "LAB3-NS" --values lab3_custom_values.yaml > explore_qp.yaml
+cd ..
+helm template "LAB3" fusion/charts/query-pipeline --namespace "LAB3-NS" > explore_qp.yaml
 ```
-`LAB3` is the Helm "release" label. When you installed your cluster, the setup script used the namespace for the release, which is a good practice to use in k8s clusters that run multiple Fusion namespaces.
+`LAB3` is the Helm "release" label. When you installed your cluster, the setup script used the *namespace* for the release, which is a good practice to use in k8s clusters that run multiple Fusion namespaces.
 
 Explore the Kubernetes objects in the `explore_qp.yaml` file we just created; take notice of where the "LAB3" release value is used, as well as the "LAB3-NS" namespace value.
+
+This is effectively how a Helm install / upgrade works behind the scenes; Helm creates a Kubernetes manifest, e.g. `explore_qp.yaml` for the Fusion deployment and submits it to the Kubernetes API to be deployed to the specified namespace.
 
 To guide your exploration, look for the various objects we discussed in this lesson:
 
@@ -47,18 +55,20 @@ To guide your exploration, look for the various objects we discussed in this les
 * secrets
 * liveness / readiness probes
 * labels / annotations
+* initContainers
 * service
 * service accounts
 
 === Step 3: Kill a pod manually
 
-Now, let's turn our attention back to the cluster to work with the deployed query pipeline service. Start by killing the query pod manually. You'll have to lookup the ID of the query pod using `k get pods`
+Now, let's turn our attention back to your GKE cluster to work with the deployed query pipeline service.
+Start by killing the query pod manually using a label filter to select query pipeline pods:
 
 ```
-kubectl delete po <ID> --force --grace-period 0
+kubectl delete po -l "app.kubernetes.io/component=query-pipeline" --force --grace-period 0
 ```
 
-What happens?
+Use `k get pods` to see what Kubernetes does to respond to a query pod being deleted in the cluster.
 
 === Step 4: Scale the query pipeline service up and down
 
@@ -71,7 +81,7 @@ k scale deployment ${LW_K8S_RELEASE}-query-pipeline --replicas=2
 
 Observe K8s behavior while scaling:
 ```
-k get pods --watch
+k get pods
 ```
 
 Down:
@@ -85,17 +95,19 @@ Be sure to scale back down to 1 before proceeding to the next step
 
 Send a request to the query pod via the api-gateway:
 ```
-curl -u admin:<PASSWORD> "http://${LW_K8S_GATEWAY_IP}:6764/api/apps/lab1/query/lab1?q=*:*"
-```
-Remember you can get the IP for the gateway using:
-```
-kubectl --namespace ${LW_K8S_NAMESPACE} get service proxy -o jsonpath='{.status.loadBalancer.ingress[0].ip}'
+curl -u admin:<PASSWORD> "http://${LW_K8S_GATEWAY_IP}:6764/api/apps/lab2/query/lab2?q=*:*"
 ```
 
+Super slow right? There's a whole bunch of lazy initialized objects when first executing a query pipeline. We'll see how to address that problem in lab4 when we configure some warming queries.
+For now, if you resend the request, it'll come back quickly.
+
+.Swagger API Docs
+****
 Did you know every Fusion microservice exposes Swagger API documentation? Try loading this URL in your browser:
 ```
 open "http://${LW_K8S_GATEWAY_IP}:6764/query/swagger-ui.html"
 ```
+****
 
 __All Fusion microservices that support public APIs expose Swagger documentation similar to the query service.__
 
@@ -109,11 +121,37 @@ __Tip: You need to figure out what port the query pod listens on before you can 
 
 Once you have a port-forward open, send this request (set the `<PORT>` correctly first):
 ```
-curl "http://localhost:<PORT>/query-pipelines/lab1/collections/lab1/select?q=*:*"
+curl "http://localhost:<PORT>/query-pipelines/lab2/collections/lab2/select?q=*:*"
 ```
 
 The request should fail with a 401 error. If you take the JWT and send it back in the Authorization header (Bearer scheme), such as:
 ```
-curl -H "Authorization: Bearer <JWT>" "http://localhost:<PORT>/query-pipelines/lab1/collections/lab1/select?q=*:*"
+curl -H "Authorization: Bearer <JWT>" "http://localhost:<PORT>/query-pipelines/lab2/collections/lab2/select?q=*:*"
 ```
 The request should succeed.
+
+=== Step 7: Apply Config Changes & Upgrade
+
+The setup script created a custom values yaml file (`gke_<CLUSTER>_<NAMESPACE>_fusion_values.yaml`) and a new shell script named `gke_<CLUSTER>_<NAMESPACE>_fusion_upgrade.sh` in the `fusion-cloud-native` directory.
+
+Take a moment to find this upgrade script and inspect its contents. Notice how it sets variables needed to perform a Helm upgrade directly in the script so that you don't have to remember these.
+You do have to ensure your `kubectl`'s config is pointing to the correct cluster though else the script will error out.
+
+Edit the custom values yaml to change the default gateway timeout to be 1 hour by adding the following setting under the `api-gateway:` section:
+
+```
+  jwtExpirationSecs: 3600
+```
+
+After making your change to the custom values yaml, run the upgrade script to apply these changes. During the upgrade, Kubernetes must perform a diff to determine what changed in the requested upgrade.
+
+After the upgrade completes, check that the change was applied to the gateway configmap:
+```
+k get cm ${LW_K8S_RELEASE}-api-gateway -o yaml
+```
+
+However, if you do a `k get pods`, you'll notice that the `api-gateway` didn't change after this config change was made. This is a bummer.
+
+Unfortunately, this is a short-coming in the Fusion microservices implementation (not a K8s problem) in that they don't pickup changes to config maps automatically.
+
+To apply the change, you'll need to delete the gateway pod and it will come back with the config updated applied.
