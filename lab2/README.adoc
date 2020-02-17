@@ -1,26 +1,35 @@
 == Lab 2: Install Fusion 5 Helm Chart on GKE
 
-In this lab, you'll install Fusion 5 into a unique namespace in a shared GKE cluster. We'll use the Fusion 5 cluster you build in this lab for the subsequent labs in this course.
+In this lab, you'll install the latest version of the Fusion 5 Helm chart into a unique namespace in a shared GKE cluster.
+We'll use the Fusion 5 deployment you build in this lab for the subsequent labs in this course.
 
 You're encouraged to team up in groups of 2 or 3 to work through the lab exercises and self-assessments.
 
 === Step 1: Verify gcloud access
 
-Execute the following command to ensure you're authenticated to GCP using your Lucidworks account:
+If you've done the pre-work, then you should already have `gcloud` setup.
+
+Execute the following command to ensure you're authenticated to GCP using your *Lucidworks* account:
 ```
 gcloud config get-value core/account
 ```
 
-If you do not see your Lucidworks email address as output from the previous command, then make sure you've installed the gcloud command-line tools and authenticated to GCP.
+If you do not see your Lucidworks email address as output from the previous command, then make sure you've installed the gcloud command-line tools (https://cloud.google.com/sdk/docs/quickstarts) and authenticated to GCP.
 ```
 gcloud init
 gcloud components update
+gcloud config set core/account YOUR_LUCIDWORKS_EMAIL
 gcloud components install kubectl
+```
+
+Verify your `kubectl` version is at least 1.13.x:
+```
+kubectl version
 ```
 
 === Step 2: Verify Helm v3
 
-Make sure you have Helm v3 installed! Do not try to install Fusion 5 with Helm v2.
+Make sure you have Helm v3 installed! *Do not try to install Fusion 5 with Helm v2!*
 
 Run:
 ```
@@ -49,6 +58,10 @@ If not running on Mac, refer to this page for instructions on installing Helm v3
 === Step 4: Choose a unique namespace for your install
 
 Start by choosing a unique namespace for your Fusion install, such as the first 3 characters of your first and last name.
+
+A namespace should only contain lowercase letters (a-z), digits (0-9), underscore, or dash. No periods allowed.
+
+Download: <TODO: LINK>
 
 *source* the `export_lab_vars.sh` script in your shell to export environment variables used by commands in the labs.
 
@@ -83,11 +96,11 @@ cd fusion-cloud-native
 
 .Clone a Github Repo... What the ?
 ****
-So you might be asking yourself, why do we need to clone a github repo to install Fusion 5? The simple answer here is *velocity*! Like Jack, we wanted to be nimble and quick.
+So you might be asking yourself, why do we need to clone a github repo to install Fusion 5? The simple answer here is *velocity*!
 As you can see from the commit history in this repo, we've been iterating on these scripts and docs rapidly over the past several months. They've finally reached a stable state.
-Coming with Fusion 5.1, there will be a downloadable zip containing the installation scripts on our Web site.
+Coming with Fusion 5.1, there will be a downloadable zip containing the installation scripts on our Web site. However, for Lucidworks employees, we recommend you always work with
+the latest scripts by pulling from github.
 ****
-
 
 Cloning the github repo is preferred so that you can pull in updates to the scripts, but if you are not a git user, then you can download the project: https://github.com/lucidworks/fusion-cloud-native/archive/master.zip.
 Once downloaded, extract the zip and cd into the `fusion-cloud-native-master` directory.
@@ -98,10 +111,8 @@ Start by reading the script usage to get a sense for the various options: `./set
 
 When you're ready to install, run this command:
 ```
-./setup_f5_gke.sh -c ${LW_K8S_CLUSTER} -p ${LW_K8S_GCP_PROJECT} -n ${LW_K8S_NAMESPACE} --version 5.0.2
+./setup_f5_gke.sh -c ${LW_K8S_CLUSTER} -p ${LW_K8S_GCP_PROJECT} -n ${LW_K8S_NAMESPACE}
 ```
-
-Notice the `--version 5.0.2` parameter to indicate you want to install version `5.0.2`. The latest script already has version `5.0.3-2` as the default version, but since we want to perform an upgrade after installing to demonstrate how upgrades work with Helm, we'll start with `5.0.2`.
 
 Make sure all the pods are healthy and running by watching the cluster rollout using: `kubectl get pods --watch`
 
@@ -145,23 +156,7 @@ Use the Fusion Quickstart to index one of the preloaded datasets into your `lab2
 
 __Tip: To launch the Quickstart, click on the *New here? Get started...* link in the upper left__
 
-=== Step 7: Upgrade to Latest Fusion 5.0.3-2
-
-The setup script created a custom values yaml file and a new shell script named `gke_${LW_K8S_CLUSTER}_${LW_K8S_NAMESPACE}_fusion_upgrade.sh` in the `fusion-cloud-native` directory.
-
-Edit the update script to set the `CHART_VERSION` variable in your upgrade to `5.0.3-2` (the latest version) and run the upgrade script to upgrade your cluster to the latest updates for 5.0.2
-
-Watch the pods as the upgrade rolls out across the cluster. `kubectl get pods --watch`.
-
-Check the Docker image versions running in the namespace using:
-```
-kubectl get po -o jsonpath='{..image}'  | tr -s '[[:space:]]' '\n' | sort | uniq
-```
-
-If you notice the admin service does not come up successfully after running the upgrade, you can kill it `k delete po <ID>`.
-This is due to a minor bug in the admin service when only running 1 Solr pod, the admin service can get hung if Solr upgrades at the same time as the admin service.
-
-=== Step 8: Verify your Installation
+=== Step 7: Verify your Installation
 
 Create an alias for `kubectl`:
 
@@ -172,9 +167,9 @@ alias k=kubectl
 Familiarize yourself with the commands used to verify the installation:
 https://github.com/lucidworks/fusion-cloud-native#verifying
 
-=== Step 9: Get a JWT from the Gateway
+=== Step 8: Get a JWT from the Gateway
 
-Lastly, let's request a JWT from the Gateway and decode it so you understand how Fusion 5 stateless sessions work
+Lastly, let's request a JWT from the Gateway and decode it so you understand how Fusion 5 stateless sessions work.
 
 ```
 curl -u admin:<PASSWORD> -XPOST "http://${LW_K8S_GATEWAY_IP}:6764/oauth2/token"
@@ -207,3 +202,5 @@ Should see something like this:
 ```
 
 The JWT decoder will report an error related to the public key; this is benign and simply due to the public key Fusion uses to digitally sign JWTs is not exposed externally.
+
+The JWT is used as a session cookie for the Fusion Admin UI.
