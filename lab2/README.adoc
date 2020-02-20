@@ -82,7 +82,9 @@ Start by choosing a *unique namespace* for your Fusion install, such as the firs
 
 A namespace should only contain lowercase letters (a-z), digits (0-9), underscore, or dash. No periods allowed.
 
-Download: <TODO: LINK> and save into the `fusion-cloud-native` directory. This will be your working directory for all the labs.
+Download: https://github.com/lucidworks/lw-k8s-workshop/blob/master/lab2/export_lab_vars.sh and save into the `fusion-cloud-native` directory.
+
+This will be your working directory for all the labs.
 
 *source* the `export_lab_vars.sh` script in your shell to export environment variables used by commands in the labs.
 

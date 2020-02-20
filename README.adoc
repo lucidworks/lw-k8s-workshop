@@ -4,7 +4,3 @@ Each lab directory contains detailed instructions to guide your exploration of t
 
 Please use the #lw-k8s-workshop slack channel for collaboration during the course. Slack me `@tim.potter` if you need to be added to the channel.
 
-Clone this repository: `git clone https://github.com/lucidworks/lw-k8s-workshop.git`
-
-Or download using: <TODO: LINK>
-
