@@ -84,7 +84,7 @@ A namespace should only contain lowercase letters (a-z), digits (0-9), underscor
 
 Download: https://raw.githubusercontent.com/lucidworks/lw-k8s-workshop/master/lab2/export_lab_vars.sh and save into the `fusion-cloud-native` directory.
 ```
-wget https://raw.githubusercontent.com/lucidworks/lw-k8s-workshop/master/lab2/export_lab_vars.sh
+curl -O https://raw.githubusercontent.com/lucidworks/lw-k8s-workshop/master/lab2/export_lab_vars.sh
 ```
 
 This will be your working directory for all the labs.

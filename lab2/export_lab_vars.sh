@@ -60,12 +60,12 @@ fi
 
 if [ "$NAMESPACE" == "" ]; then
   print_usage "$SCRIPT_CMD" "Please provide the GKE namespace using: -n <namespace>"
-  exit 1
+#  exit 1
 fi
 
 if [ "$GCP_PROJECT" == "" ]; then
   print_usage "$SCRIPT_CMD" "Please provide the GCP project name using: -p <project>"
-  exit 1
+#  exit 1
 fi
 
 export LW_K8S_GCP_PROJECT="${GCP_PROJECT}"
