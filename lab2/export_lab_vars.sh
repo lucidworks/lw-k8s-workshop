@@ -74,5 +74,13 @@ export LW_K8S_NAMESPACE="${NAMESPACE}"
 export LW_K8S_ZONE="us-west1"
 export LW_K8S_RELEASE="${NAMESPACE}"
 
+echo -e "\nExported the following settings to your shell env:\n"
+echo "LW_K8S_GCP_PROJECT = $LW_K8S_GCP_PROJECT"
+echo "LW_K8S_CLUSTER = $LW_K8S_CLUSTER"
+echo "LW_K8S_NAMESPACE = $LW_K8S_NAMESPACE"
+echo "LW_K8S_ZONE = $LW_K8S_ZONE"
+echo "LW_K8S_RELEASE = $LW_K8S_RELEASE"
+echo -e "\nYou can now copy-and-paste commands from the labs into this shell."
+
 
 

@@ -4,15 +4,22 @@ In this lab, you'll configure your cluster for high availability (HA).
 
 === Step 1: Configure Resource Limits
 
-Copy the `example-values/resources.yaml` from the `fusion-cloud-native` repo to your directory in `shared-k8s-internal`
+Make a copy of the `example-values/resources.yaml`:
+
+```
+cp example-values/resources.yaml gke_${LW_K8S_CLUSTER}_${LW_K8S_RELEASE}_fusion_resources.yaml
+```
 
 Lucidworks provides this example file as a starting point only; a customer's actual resource needs may differ.
 
-Rename `resources.yaml` to `gke_<CLUSTER>_${LW_K8S_RELEASE}_fusion_resources.yaml`
-
 As we have 3 StatefulSets for Solr in our cluster, configure the resource limits for the `analytics` and `search` in your main custom values yaml file.
 
-Append `gke_<CLUSTER>_${LW_K8S_RELEASE}_fusion_resources.yaml` to the `MY_VALUES` var in the upgrade script. Run the upgrade script to apply your changes.
+Append the resoures yaml file to the `MY_VALUES` var in the upgrade script.
+```
+MY_VALUES="${MY_VALUES} --values ${PROVIDER}_${CLUSTER_NAME}_${RELEASE}_fusion_resources.yaml"
+```
+
+Run the upgrade script to apply your changes.
 
 Observe pod rescheduling performed by Kubernetes: `k get pods --watch`
 
@@ -21,6 +28,10 @@ Observe pod rescheduling performed by Kubernetes: `k get pods --watch`
 Perform the same process as you did in Step 1 but using:
 
 `example-values/affinity.yaml`
+
+```
+MY_VALUES="${MY_VALUES} --values ${PROVIDER}_${CLUSTER_NAME}_${RELEASE}_fusion_affinity.yaml"
+```
 
 Once you apply the affinity rules, observe any pod rescheduling triggered by your update.
 
@@ -32,6 +43,10 @@ the query and gateway services. In a real cluster, you can use `example-values/r
 Note that you should manage replica settings for your various Solr StatefulSets in the main custom values yaml file.
 
 For this step, use `lab5/replicas.yaml` which is a small subset of `example-values/replicas.yaml`.
+
+```
+curl https://raw.githubusercontent.com/lucidworks/lw-k8s-workshop/master/lab5/replicas.yaml -O "gke_${LW_K8S_CLUSTER}_${LW_K8S_RELEASE}_fusion_replicas.yaml"
+```
 
 === Step 4: Add your new yaml files source control
 
