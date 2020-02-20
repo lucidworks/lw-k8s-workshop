@@ -4,3 +4,4 @@ Each lab directory contains detailed instructions to guide your exploration of t
 
 Please use the #lw-k8s-workshop slack channel for collaboration during the course. Slack me `@tim.potter` if you need to be added to the channel.
 
+Start with https://github.com/lucidworks/lw-k8s-workshop/blob/master/lab2/README.adoc[lab2]
