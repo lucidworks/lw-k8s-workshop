@@ -29,7 +29,11 @@ Add a Prometheus data source with URL: `http://<RELEASE>-prom-prometheus-server`
 
 Create a `lab4` app using the Fusion Admin UI.
 
-Download: https://github.com/lucidworks/lw-k8s-workshop/blob/master/lab4/post_job.sh
+Download: https://raw.githubusercontent.com/lucidworks/lw-k8s-workshop/master/lab4/post_job.sh
+
+```
+wget https://raw.githubusercontent.com/lucidworks/lw-k8s-workshop/master/lab4/post_job.sh
+```
 
 Run `sh ./post_job.sh` from the `lab4` directory to create a PBL job for indexing data from GCS and run it from the Admin UI.
 

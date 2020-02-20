@@ -82,11 +82,17 @@ Start by choosing a *unique namespace* for your Fusion install, such as the firs
 
 A namespace should only contain lowercase letters (a-z), digits (0-9), underscore, or dash. No periods allowed.
 
-Download: https://github.com/lucidworks/lw-k8s-workshop/blob/master/lab2/export_lab_vars.sh and save into the `fusion-cloud-native` directory.
+Download: https://raw.githubusercontent.com/lucidworks/lw-k8s-workshop/master/lab2/export_lab_vars.sh and save into the `fusion-cloud-native` directory.
+```
+wget https://raw.githubusercontent.com/lucidworks/lw-k8s-workshop/master/lab2/export_lab_vars.sh
+```
 
 This will be your working directory for all the labs.
 
-*source* the `export_lab_vars.sh` script in your shell to export environment variables used by commands in the labs.
+*source* the `export_lab_vars.sh` script in your shell to export environment variables used by commands in the labs. For instance if my desired namespace is `tjp` and I'm using the `lw-sales` project, then I would run:
+```
+source ./export_lab_vars.sh -n tjp -p lw-sales
+```
 
 If you see the following output in your console, it means you executed the script instead of using `source`:
 ```
@@ -94,11 +100,6 @@ Saving session...completed.
 Deleting expired sessions...none found.
 
 [Process completed]
-```
-
-For instance if my desired namespace is `tjp` and I'm using the `lw-sales` project, then I would run:
-```
-source ./export_lab_vars.sh -n tjp -p lw-sales
 ```
 
 __The script simply exports the `LW_K8S_CLUSTER`, `LW_K8S_NAMESPACE`, `LW_K8S_RELEASE`, and `LW_K8S_GCP_PROJECT` vars for your cluster to save you some typing / copy-pasting in the labs.__
