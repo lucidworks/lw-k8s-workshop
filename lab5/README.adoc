@@ -45,7 +45,7 @@ Note that you should manage replica settings for your various Solr StatefulSets 
 For this step, use `lab5/replicas.yaml` which is a small subset of `example-values/replicas.yaml`.
 
 ```
-curl https://raw.githubusercontent.com/lucidworks/lw-k8s-workshop/master/lab5/replicas.yaml -O "gke_${LW_K8S_CLUSTER}_${LW_K8S_RELEASE}_fusion_replicas.yaml"
+curl https://raw.githubusercontent.com/lucidworks/lw-k8s-workshop/master/lab5/replicas.yaml > "gke_${LW_K8S_CLUSTER}_${LW_K8S_RELEASE}_fusion_replicas.yaml"
 ```
 
 === Step 4: Add your new yaml files source control
