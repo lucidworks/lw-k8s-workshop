@@ -13,14 +13,23 @@ You can expose Grafana to the internet using:
 kubectl expose deployment ${LW_K8S_RELEASE}-graf-grafana --type=LoadBalancer --name=grafana
 ```
 
-How do you get the external IP?
+How do you get the external IP for the Grafana service?
 ```
 kubectl get service grafana -o jsonpath='{.status.loadBalancer.ingress[0].ip}'
 ```
 
+Get the initial Grafana password for `admin`:
+```
+kubectl get secret --namespace "${LW_K8S_NAMESPACE}" ${LW_K8S_RELEASE}-graf-grafana -o jsonpath="{.data.admin-password}" | base64 --decode ; echo
+```
+
+Add a Prometheus data source with URL: `http://<RELEASE>-prom-prometheus-server` where `<RELEASE>` is your namespace.
+
 === Step 2: Add the Load PBL Job and Run It
 
-Create a `lab4` app.
+Create a `lab4` app using the Fusion Admin UI.
+
+TODO: link to script
 
 Run `./post_job.sh` from the `lab4` directory to create a PBL job for indexing data from GCS and run it from the Admin UI.
 

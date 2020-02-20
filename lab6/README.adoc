@@ -43,9 +43,9 @@ Add the following `nodePools` yaml under the existing `solr:` section of your cu
   nodePools:
     - name: ""
     - name: "analytics"
-      javaMem: "-Xmx4g"
+      javaMem: "-Xmx2g"
       replicaCount: 1
-      storageSize: "20Gi"
+      storageSize: "10Gi"
       nodeSelector:
         fusion_node_type: analytics
       tolerations:
@@ -54,9 +54,9 @@ Add the following `nodePools` yaml under the existing `solr:` section of your cu
         value: "analytics"
         effect: "NoSchedule"
     - name: "search"
-      javaMem: "-Xms4g -Xmx4g"
-      replicaCount: 2
-      storageSize: "20Gi"
+      javaMem: "-Xms2g -Xmx2g"
+      replicaCount: 3
+      storageSize: "10Gi"
       nodeSelector:
         fusion_node_type: search
       tolerations:
