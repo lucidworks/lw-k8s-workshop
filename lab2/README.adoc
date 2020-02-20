@@ -1,101 +1,227 @@
-== Lab 2: Exploring Kubernetes Deployments
+== Lab 2: Install Fusion 5 Helm Chart on GKE
 
-In this lab, you'll apply what you learned about Kubernetes deployments to understand how the Fusion query pipeline service works.
-You'll also get a feel for how Helm works behind the scenes to deploy objects into Kubernetes.
+In this lab, you'll install the latest version of the Fusion 5 Helm chart into a unique namespace in a shared GKE cluster.
+We'll use the Fusion 5 deployment you build in this lab for the subsequent labs in this course.
 
-Throughout this lab, replace `<RELEASE>` with the release you used in lab1 (-r) and `<HOSTNAME>` with the hostname you provided in lab1 (-h).
+You're encouraged to team up in groups of 2 or 3 to work through the lab exercises and self-assessments.
 
-=== Step 1: Explore Fusion Objects
+=== Step 1: Verify gcloud access
 
-Spend a few minutes exploring the pods, deployments, services, secrets, and configmaps in the Fusion cluster. Notice any patterns?
+If you've done the pre-work, then you should already have `gcloud` setup.
 
-=== Step 2: Fetch the Fusion Helm Chart and Render Locally
-
-List the Helm chart repositories registered to your local Helm client:
+Execute the following command to ensure you're authenticated to GCP using your *Lucidworks* account:
 ```
-helm repo list
+gcloud config get-value core/account
 ```
 
-Fetch the latest Fusion 5 Helm chart from our Helm repo and extract it locally:
+If you do not see your Lucidworks email address as output from the previous command, then make sure you've installed the gcloud command-line tools (https://cloud.google.com/sdk/docs/quickstarts) and authenticated to GCP.
 ```
-helm fetch lucidworks/fusion --version 5.0.3-2 --untar
-```
-Spend a few minutes exploring the `fusion` directory.
-
-Use `helm template` command and the custom values yaml (`lab2_custom_values.yaml`) to render the chart into a Kubernetes deployment manifest locally:
-```
-helm template "LAB2" fusion/charts/query-pipeline --namespace "LAB2-NS" --values lab2_custom_values.yaml > explore_qp.yaml
+gcloud init
+gcloud components update
+gcloud config set core/account YOUR_LUCIDWORKS_EMAIL
+gcloud components install kubectl
 ```
 
-Explore the Kubernetes objects in the `explore_qp.yaml` file we just created; take notice of where the "LAB2" release value is used, as well as the "LAB2-NS" namespace value.
-
-To guide your exploration, look for the various objects we discussed in this lesson:
-
-* docker image
-* deployment & pod spec
-* configmap(s)
-* secrets
-* liveness / readiness probes
-* labels / annotations
-* service
-* service accounts
-
-=== Step 3: Kill a pod manually
-
+Verify your `kubectl` version is at least 1.13.x:
 ```
-kubectl delete po <ID> --force --grace-period 0
+kubectl version
 ```
 
-What happens?
+=== Step 2: Verify Helm v3
 
-=== Step 4: Scale the query pipeline service up and down
+Make sure you have Helm v3 installed! *Do not try to install Fusion 5 with Helm v2!*
 
-Now, let's turn our attention back to the cluster to work with the deployed query pipeline service.
-
-Use kubectl to scale the `<RELEASE>-query-pipeline` deployment up and down
-
-Up:
+Run:
 ```
-k scale deployment <RELEASE>-query-pipeline --replicas=2
+helm version --short
 ```
 
-Observe K8s behavior while scaling:
+If your version does not start with with `v3.`, please do an upgrade. On a Mac, do:
 ```
-k get pods --watch
-```
-
-Down:
-```
-k scale deployment <RELEASE>-query-pipeline --replicas=1
+brew upgrade kubernetes-helm
 ```
 
-Be sure to scale back down to 1 before proceeding to the next step
+If not running on Mac, refer to this page for instructions on installing Helm v3 for your OS: https://helm.sh/docs/intro/install/
 
-=== Step 5: Verify your pod is serving traffic
+=== Step 3: Clone the fusion-cloud-native repo from github
 
-Send a request to the query pod via the api-gateway:
+Clone the fusion-cloud-native repo:
 ```
-curl -u admin:<PASSWORD> "https://<HOSTNAME>/api/apps/lab1/query/lab1?q=*:*"
-```
-
-Did you know every Fusion microservice exposes Swagger API documentation? Try loading this URL in your browser:
-
-https://<HOSTNAME>/query/swagger-ui.html
-
-=== Step 6: Try to send a request to a query pod directly
-
-Let's bypass the Fusion API gateway and send a request directly to the query service.
-
-Open a port-forward to a query pod and try to execute a query request against it ... what happens?
-
-__Tip: You need to figure out what port the query pod listens on before you can establish a port-forward.__
-
-Once you have a port-forward open, send this request (set the `<PORT>` correctly first):
-```
-curl "http://localhost:<PORT>/query-pipelines/lab1/collections/lab1/select?q=*:*"
+git clone https://github.com/lucidworks/fusion-cloud-native.git
+cd fusion-cloud-native
 ```
 
-If you take the JWT and send it back in the Authorization header (Bearer scheme), such as:
+*IMPORTANT: If you already have this github repo cloned locally, please do a `git pull` to ensure you have the latest updates.*
+
+.Clone a Github Repo... What the ?
+****
+So you might be asking yourself, why do we need to clone a github repo to install Fusion 5? The simple answer here is *velocity*!
+As you can see from the commit history in this repo, we've been iterating on these scripts and docs rapidly over the past several months. They've finally reached a stable state.
+Coming with Fusion 5.1, there will be a downloadable zip containing the installation scripts on our Web site. However, for Lucidworks employees, we recommend you always work with
+the latest scripts by pulling from github.
+****
+
+Cloning the github repo is preferred so that you can pull in updates to the scripts, but if you are not a git user, then you can download the project: https://github.com/lucidworks/fusion-cloud-native/archive/master.zip.
+Once downloaded, extract the zip and cd into the `fusion-cloud-native-master` directory.
+
+=== Step 4: Choose the right shared GKE cluster
+
+[width="70%",cols="4,3,5",options="header"]
+|=========================================================
+|Org|GCP Project|Cluster Name
+|PS|proserve|proserve-trng
+|Sales/SE|lw-sales|lw-sales-trng
+|Support|lw-support-team|lw-support-team-trng
+|Training & Docs|training-and-docs|training-and-docs-trng
+|All Others|lw-sales|lw-sales-trng
+|=========================================================
+
+=== Step 5: Choose a unique namespace for your install
+
+Start by choosing a *unique namespace* for your Fusion install, such as the first 3 characters of your first and last name.
+
+A namespace should only contain lowercase letters (a-z), digits (0-9), underscore, or dash. No periods allowed.
+
+Download: <TODO: LINK> and save into the `fusion-cloud-native` directory. This will be your working directory for all the labs.
+
+*source* the `export_lab_vars.sh` script in your shell to export environment variables used by commands in the labs.
+
+If you see the following output in your console, it means you executed the script instead of using `source`:
 ```
-curl -H "Authorization: Bearer <JWT>" "http://localhost:<PORT>/query-pipelines/lab1/collections/lab1/select?q=*:*"
+Saving session...completed.
+Deleting expired sessions...none found.
+
+[Process completed]
 ```
+
+For instance if my desired namespace is `tjp` and I'm using the `lw-sales` project, then I would run:
+```
+source ./export_lab_vars.sh -n tjp -p lw-sales
+```
+
+__The script simply exports the `LW_K8S_CLUSTER`, `LW_K8S_NAMESPACE`, `LW_K8S_RELEASE`, and `LW_K8S_GCP_PROJECT` vars for your cluster to save you some typing / copy-pasting in the labs.__
+
+To verify your environment settings and that you have access to the training cluster and GCP project, run the following command:
+```
+gcloud config set compute/zone us-west1
+gcloud config set project ${LW_K8S_GCP_PROJECT}
+gcloud container clusters get-credentials ${LW_K8S_CLUSTER}
+kubectl config current-context
+```
+Watch for errors and correct as indicated.
+
+=== Step 6: Install the Fusion 5 Helm Chart
+
+You are now ready to install Fusion 5 in the Kubernetes cluster.
+
+Start by reading the script usage to get a sense for the various options: `./setup_f5_gke.sh --help`
+
+When you're ready to install, run this command:
+```
+./setup_f5_gke.sh -c ${LW_K8S_CLUSTER} -p ${LW_K8S_GCP_PROJECT} -n ${LW_K8S_NAMESPACE}
+```
+
+The installation process can take several minutes, especially since a number of students are also rolling out new deployments in the same shared cluster. Please be patient.
+
+As the script progresses, it prints useful information about your cluster; consider reading this output instead of just ignoring it.
+
+Make sure all the pods are healthy and running by watching the cluster rollout using: `kubectl get pods --watch`
+
+Hit `ctrl-c` once all the pods are running.
+
+Once completed, the setup script reports the external IP for the Fusion API Gateway service (aka `proxy`), which runs on port 6764.
+
+.Any and All Kubernetes
+****
+The `setup_f5_gke.sh` eventually just calls `helm` to install the Fusion 5 Helm chart. Consequently, to install Fusion 5 on any Kubernetes, you can skip the setup scripts and just use `helm` directly, for example:
+```
+helm upgrade "${LW_K8S_NAMESPACE}" lucidworks/fusion --install \
+  --namespace "${LW_K8S_NAMESPACE}" \
+  --values "gke_${LW_K8S_CLUSTER}_${LW_K8S_NAMESPACE}_fusion_values.yaml"
+```
+Lucidworks provides the setup scripts for popular Kubernetes platforms, such as GKE and AKS, to help users that are new to Kubernetes get started quickly.
+The other advantage of the setup script is that it creates a custom values yaml file to help you customize your installation.
+However, experienced Kubernetes users can skip our scripts and just use Helm directly as shown above.
+****
+
+=== Step 7: Create a New App in the Fusion Admin UI
+
+The setup script will display the external IP for your cluster, but you can also run the following command to lookup the Gateway IP:
+```
+kubectl --namespace ${LW_K8S_NAMESPACE} get service proxy -o jsonpath='{.status.loadBalancer.ingress[0].ip}'
+```
+The port is `6764`
+
+Export the external IP for your Gateway pod:
+```
+export LW_K8S_GATEWAY_IP=$(kubectl --namespace ${LW_K8S_NAMESPACE} get service proxy -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+```
+
+__NOTE: For this course, we're not using K8s ingress__
+
+Login to the Fusion Admin UI using the Gateway address shown by the script and create a new app named `lab2`.
+```
+open http://${LW_K8S_GATEWAY_IP}:6764
+```
+
+*If the Fusion UI does not prompt you to set an initial admin password and simply redirects you to a login screen, then this means Solr and/or the admin service is not running in your cluster yet. Raise your hand if this occurs and we'll help you troubleshoot.*
+
+Use the Fusion Quickstart to index one of the preloaded datasets into your `lab2` app.
+
+__Tip: To launch the Quickstart, click on the *New here? Get started...* link in the upper left__
+
+=== Step 8: Verify your Installation
+
+Create an alias for `kubectl`:
+
+```
+alias k=kubectl
+```
+
+Check the Docker image versions running in the namespace using:
+```
+kubectl get po -o jsonpath='{..image}'  | tr -s '[[:space:]]' '\n' | sort | uniq
+```
+
+Familiarize yourself with the commands used to verify the installation:
+https://github.com/lucidworks/fusion-cloud-native#verifying
+
+=== Extra Credit: Get a JWT from the Gateway
+
+This step is optional, but we think it is useful to see how JWT's work in Fusion 5.
+
+Request a JWT from the Gateway and decode it:
+
+```
+curl -u admin:<PASSWORD> -XPOST "http://${LW_K8S_GATEWAY_IP}:6764/oauth2/token"
+```
+
+Copy the `access_token` value returned from the POST request.
+
+Decode the JWT using: https://jwt.io/
+
+Should see something like this:
+```
+{
+  "sub": "admin",
+  "permissions": [],
+  "scope": [
+    "openid",
+    "email",
+    "profile"
+  ],
+  "iss": "http://proxy:6764/oauth2/default",
+  "realm": "native",
+  "exp": 1579970817,
+  "userId": "1ad40099-9219-4b00-b727-102703df3ebb",
+  "iat": 1579969017,
+  "permissions_vs": 489,
+  "authorities": [
+    "admin"
+  ]
+}
+```
+
+The JWT decoder will report an error related to the public key; this is benign and simply due to the public key Fusion uses to digitally sign JWTs is not exposed externally.
+
+The JWT is also used as a session cookie for the Fusion Admin UI.

@@ -1,8 +1,7 @@
 #!/bin/bash
 PROXY="$1"
 if [ "$PROXY" == "" ]; then
-  echo -e "\nERROR: Please pass the base proxy URL, such as: http://IP:6764\n"
-  exit 1
+  PROXY="http://${LW_K8S_GATEWAY_IP}:6764"
 fi
 
 if [[ $PROXY != http* ]]; then

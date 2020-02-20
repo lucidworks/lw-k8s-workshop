@@ -10,19 +10,28 @@ See instructions here: https://github.com/lucidworks/fusion-cloud-native#grafana
 
 You can expose Grafana to the internet using:
 ```
-kubectl expose deployment <RELEASE>-graf-grafana --type=LoadBalancer --name=grafana
+kubectl expose deployment ${LW_K8S_RELEASE}-graf-grafana --type=LoadBalancer --name=grafana
 ```
 
-How do you get the external IP?
+How do you get the external IP for the Grafana service?
 ```
 kubectl get service grafana -o jsonpath='{.status.loadBalancer.ingress[0].ip}'
 ```
 
+Get the initial Grafana password for `admin`:
+```
+kubectl get secret --namespace "${LW_K8S_NAMESPACE}" ${LW_K8S_RELEASE}-graf-grafana -o jsonpath="{.data.admin-password}" | base64 --decode ; echo
+```
+
+Add a Prometheus data source with URL: `http://<RELEASE>-prom-prometheus-server` where `<RELEASE>` is your namespace.
+
 === Step 2: Add the Load PBL Job and Run It
 
-As you did in `lab3`, create a `lab4` app and then update the collection layout using the `update_app_coll_layout.sh` script.
+Create a `lab4` app using the Fusion Admin UI.
 
-Run `./post_job.sh` from the `lab4` directory to create the job and run it.
+TODO: link to script
+
+Run `./post_job.sh` from the `lab4` directory to create a PBL job for indexing data from GCS and run it from the Admin UI.
 
 While the job is running, observe the Spark job related pods running in your cluster.
 
@@ -59,46 +68,23 @@ __NOTE: The spacing and indentation is important for embedding JSON in YAML corr
 
 After running the upgrade, inspect the warming query configmap:
 ```
-k get cm <RELEASE>-query-pipeline-warming-queries -o yaml --export
+k get cm ${LW_K8S_RELEASE}-query-pipeline-warming-queries -o yaml --export
 ```
 
 *You'll have to delete the running query pod(s) to pickup the warming query configmap changes.*
 
-=== Step 4: Use a query stage to add the lw.nodeFilter parameter
-
-Add query parameter: `lw.nodeFilter=coll:lab4`
-
-=== Step 5: Deploy the Gatling Simulation to K8s
+=== Step 4: Deploy the Gatling Simulation to K8s
 
 The `fusion-cloud-native` repo contains a maven project to help customers build query load tests.
 
 You can run that project from an IDE locally but it's better to run the load test from a node closer to your cluster.
 
-So let's load this gatling simulation into the cluster using Docker as this will give you a feel for how images get deployed in k8s.
-
-==== Optional: Build and Push Docker Image
-
-If you have Docker installed on your local workstation, then let's build a custom image and push it to GCP's Docker registry
-
-```
-docker build -t gatling-qps:<NAMESPACE> -f docker/Dockerfile .
-```
-
-Run a script to tag and push the image from local to GCP:
-```
-./gcp_docker.sh -p <PROJECT> -n <NAMESPACE>
-```
-
-Navigate to the Container Registry page in the GCP Console to see your image.
-
-==== Deploy the Gatling in K8s
-
-So now your image is in GCP, you can ask k8s to run it in your cluster:
+Run the gatling simulation Docker image in k8s:
 
 ```
 kubectl run --generator=run-pod/v1 --restart=Never \
-   --image=us.gcr.io/<GCLOUD_PROJECT>/gatling-qps:<NAMESPACE> \
-   --env="JAVA_OPTS=-Dqps.fusion.url=https://<HOSTNAME> -Dqps.app=lab4" \
+   --image="us.gcr.io/${LW_K8S_GCP_PROJECT}/gatling-qps:lab4" \
+   --env="JAVA_OPTS=-Dqps.fusion.url=http://${LW_K8S_GATEWAY_IP}:6764 -Dqps.app=lab4" \
    gatling-qps -- -s FusionQueryTraffic
 ```
 
@@ -108,7 +94,7 @@ The `--restart=Never` is so that the test doesn't restart after it completes.
 
 Obviously for a real load test, you probably want to run the load tester outside the cluster, such as on a GCP instance.
 
-=== Step 6: Observe the Query Performance in Grafana
+=== Step 5: Observe the Query Performance in Grafana
 
 While the load test is running, monitor query performance of the lab4 pipeline and Solr.
 
@@ -117,17 +103,13 @@ Tail the pod logs using:
 k logs gatling-qps -f
 ```
 
-=== Step 7: Forcefully Kill a Pod During the Test
-
-TODO: Does this work as we think?
-
-=== Step 8: Download the GC log for one of your Solr pods
+=== Step 6: Download the GC log for one of your Solr pods
 
 Analyze the GC activity of Solr using gceasy.io.
 
 Download the gc log using:
 ```
-k cp <RELEASE>-solr-search-0:/var/solr/logs/solr_gc.log ./solr_gc.log
+k cp ${LW_K8S_RELEASE}-solr-search-0:/var/solr/logs/solr_gc.log ./solr_gc.log
 ```
 What throughput are you getting? What was the object allocation rate during the load test.
 

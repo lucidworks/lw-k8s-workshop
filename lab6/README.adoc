@@ -1,3 +1,125 @@
-== Lab 6: Working with Spark
+== Lab 6: Multiple Solr StatefulSets
 
-__TODO: This lesson and lab are still under construction ...__
+In this lab, you'll scale out Solr by adding the search and analytics StatefulSets and configure the new Solr pods to run on different nodes.
+You'll use a Solr auto-scaling policy to govern the assignment of replicas to the correct Solr pods for workload isolation and multi-zone high availability.
+
+=== Step 1: Manually Delete the Solr pod
+
+Get the IP address of your Solr pod:
+```
+k get pods -l app.kubernetes.io/name=solr -o wide
+```
+
+Delete a Solr pod manually and watch it come back.
+
+```
+kubectl delete po <ID>
+```
+
+Verify the data in Solr still exists and Solr comes back healthy.
+
+What's the new IP?
+
+=== Step 2: Inspect the Persistent Volume Details for your Solr pod
+
+How big is the volume? Where is this specified?
+
+What directory is the volume mounted at on the pod? (hint: `lsblk`)
+
+```
+kubectl exec -it ${LW_K8S_RELEASE}-solr-0 -- /bin/bash
+```
+
+What is the access mode used for this volume?
+```
+k get pvc
+```
+
+=== Step 3: Define a search and analytics Solr StatefulSets in custom values yaml
+
+Add the following `nodePools` yaml under the existing `solr:` section of your custom values yaml.
+
+```
+  nodePools:
+    - name: ""
+    - name: "analytics"
+      javaMem: "-Xmx2g"
+      replicaCount: 1
+      storageSize: "10Gi"
+      nodeSelector:
+        fusion_node_type: analytics
+      tolerations:
+      - key: "fusion_node_type"
+        operator: "Equal"
+        value: "analytics"
+        effect: "NoSchedule"
+    - name: "search"
+      javaMem: "-Xms2g -Xmx2g"
+      replicaCount: 3
+      storageSize: "10Gi"
+      nodeSelector:
+        fusion_node_type: search
+      tolerations:
+      - key: "fusion_node_type"
+        operator: "Equal"
+        value: "search"
+        effect: "NoSchedule"
+```
+Don't worry about the `-name: ""` part as that specifies the suffix for the initial StatefulSet that was deployed during the initial installation.
+
+Add the `-Dfusion_node_type=system` property to the `javaMem` setting for the initial StatefulSet. The new statefulsets (analytics, search) already get the system property set by the Helm chart.
+
+Tune Solr's GC settings by adding `solrGcTune` under the `solr:` section:
+```
+  solrGcTune: "-XX:+UseG1GC -XX:+PerfDisableSharedMem -XX:+ParallelRefProcEnabled -XX:MaxGCPauseMillis=150 -XX:+UseLargePages -XX:+AlwaysPreTouch"
+```
+
+Apply your changes to the custom values yaml using the upgrade script. Observe how k8s rolls out the new Solr pods using: `k get pods --watch`
+
+The update may take a while to rollout since the cluster needs to expand to schedule the new Solr pods. I've configured the `search` and `analytics` node pools to auto-scale down to zero, so we may have to wait a bit for the nodes to come up.
+
+After the new Solr pods rollout, verify the nodes all Solr pods are running on:
+```
+k get pods -o wide | grep ${LW_K8S_RELEASE}-solr | grep -v exporter | sed 's/   */:/g' | cut -d : -f 7 | sort | uniq | wc -l
+```
+Should be `4` ... why?
+
+Verify each pod in the search partition runs in a different availability zone, such as `us-west1-a`
+
+To see the `fusion_node_type` label on the nodes, do:
+```
+k get nodes -L fusion_node_type
+```
+
+=== Step 4: Upload Solr auto-scaling policy to leverage the different StatefulSets
+
+Review the Solr auto-scaling policy in policy.json (fusion-cloud-native repo)
+
+Open a port-forward to one of your Solr pods: `k port-forward ${LW_K8S_RELEASE}-solr-0 8983`
+
+Use the `update_policy.sh` script
+
+=== Step 5: Create a lab3 app in Fusion
+
+Tail the admin service logs and grep for `lab3` so you can see what happens when Fusion creates an app.
+
+```
+k logs <ID> -f --tail 100 | grep lab3
+```
+
+Use the Solr admin console (http://localhost:8983) to see how the collections were assigned across Solr pods.
+
+=== Step 6: Fix collection layout
+
+Run the `update_app_coll_layout.sh` script to fix the collection layout. Verify all replicas for all collections in the lab3 app are on the correct nodes.
+
+=== Step 7: Inspect the headless service
+
+A headless service identifies the IP for all pods in a StatefulSet; every StatefulSet needs a headless service so K8s can expose a stable hostname for every pod using DNS.
+
+```
+k run dnsutils --image=tutum/dnsutils --generator=run-pod/v1 --command -- sleep infinity
+k exec dnsutils nslookup ${LW_K8S_RELEASE}-solr-search-headless
+```
+
+
