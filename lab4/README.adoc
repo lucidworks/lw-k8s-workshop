@@ -9,24 +9,30 @@ You can expose Grafana to the internet using:
 ```
 kubectl expose deployment ${LW_K8S_RELEASE}-graf-grafana --type=LoadBalancer --name=grafana
 ```
+This creates a new `LoadBalancer` service named `grafana` with an external IP.
 
 How do you get the external IP for the Grafana service?
 ```
 kubectl get service grafana -o jsonpath='{.status.loadBalancer.ingress[0].ip}'
 ```
 
-Browse to IP:3000
+Browse to Grafana on port 3000:
 ```
 grafana_ip=$(kubectl get service grafana -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
-open "http://${grafana_ip}:3000
+open "http://${grafana_ip}:3000"
 ```
 
 Get the initial Grafana password for `admin` from a secret:
 ```
-kubectl get secret --namespace "${LW_K8S_NAMESPACE}" ${LW_K8S_RELEASE}-graf-grafana -o jsonpath="{.data.admin-password}" | base64 --decode ; echo
+kubectl get secret --namespace "${LW_K8S_NAMESPACE}" ${LW_K8S_RELEASE}-graf-grafana \
+  -o jsonpath="{.data.admin-password}" | base64 --decode ; echo
 ```
 
-Add a Prometheus data source with URL: `http://<RELEASE>-prom-prometheus-server` where `<RELEASE>` is your namespace.
+After logging in, add a Prometheus data source with URL: `http://<RELEASE>-prom-prometheus-server` where `<RELEASE>` is the namespace for your Fusion 5 cluster.
+
+Import one or more Grafana dashboards from the fusion-cloud-native repo: https://github.com/lucidworks/fusion-cloud-native/tree/master/monitoring/grafana
+
+For this lab, please ensure you import the `dashboard_query_pipeline.json` dashboard for observing query pipeline performance metrics.
 
 === Step 2: Add the Load PBL Job and Run It
 
@@ -84,7 +90,9 @@ After running the upgrade, inspect the warming query configmap:
 k get cm ${LW_K8S_RELEASE}-query-pipeline-warming-queries -o yaml --export
 ```
 
-*You'll have to delete the running query pod(s) to pickup the warming query configmap changes.*
+The Fusion microservices do not automatically detect changes to a configmap, so you'll need to delete the running query pod(s) to pickup the warming query configmap changes.
+
+In a production environment with only one query pod running, you may want to scale up the deployment (the pod will pick up the configmap changes) before deleting the running pod.
 
 === Step 4: Deploy the Gatling Simulation to K8s
 
@@ -97,13 +105,13 @@ Run the gatling simulation Docker image in k8s:
 ```
 kubectl run --generator=run-pod/v1 --restart=Never \
    --image="us.gcr.io/${LW_K8S_GCP_PROJECT}/gatling-qps:lab4" \
-   --env="JAVA_OPTS=-Dqps.fusion.url=http://${LW_K8S_GATEWAY_IP}:6764 -Dqps.app=lab4" \
+   --env="JAVA_OPTS=-Dqps.fusion.url=http://${LW_K8S_GATEWAY_IP}:6764 -Dqps.app=lab4 -Dqps.fusion.pass=password123" \
    gatling-qps -- -s FusionQueryTraffic
 ```
 
-If you changed your password, pass: `-Dqps.fusion.pass=PASSWORD` in the env of your run command
+Be sure to update the password in the run command (look for: `-Dqps.fusion.pass=password123`) to match the admin password you set when first logging into Fusion.
 
-This command creates a pod for the Gatling load test runner; no Helm mumbo jumbo needed to run workloads on Kube.
+This command creates a pod for the Gatling load test runner; this demonstrates that you don't need Helm to run workloads on Kube, you can just run any arbitrary Docker image as we're doing here.
 
 The `--restart=Never` is so that the test doesn't restart after it completes.
 
@@ -118,13 +126,13 @@ Tail the pod logs using:
 k logs gatling-qps -f
 ```
 
-=== Step 6: Download the GC log for one of your Solr pods
+=== Step 6: Download the GC log from your Solr pod
 
 Analyze the GC activity of Solr using gceasy.io.
 
 Download the gc log using:
 ```
-k cp ${LW_K8S_RELEASE}-solr-search-0:/var/solr/logs/solr_gc.log ./solr_gc.log
+k cp ${LW_K8S_RELEASE}-solr-0:/var/solr/logs/solr_gc.log ./solr_gc.log
 ```
 What throughput are you getting? What was the object allocation rate during the load test.
 
