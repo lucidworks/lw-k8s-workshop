@@ -32,7 +32,7 @@ After logging in, add a Prometheus data source with URL: `http://<RELEASE>-prom-
 
 Import one or more Grafana dashboards from the fusion-cloud-native repo: https://github.com/lucidworks/fusion-cloud-native/tree/master/monitoring/grafana
 
-For this lab, please ensure you import the `dashboard_query_pipeline.json` dashboard for observing query pipeline performance metrics.
+For this lab, please ensure you import the `dashboard_query_pipeline.json` and `dashboard_indexing_metrics.json` dashboards for observing query and index pipeline performance metrics.
 
 === Step 2: Add the Load PBL Job and Run It
 
