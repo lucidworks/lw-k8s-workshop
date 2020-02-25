@@ -71,7 +71,7 @@ Add the `-Dfusion_node_type=system` property to the `javaMem` setting for the in
 
 Tune Solr's GC settings by adding `solrGcTune` under the `solr:` section:
 ```
-  solrGcTune: "-XX:+UseG1GC -XX:+PerfDisableSharedMem -XX:+ParallelRefProcEnabled -XX:MaxGCPauseMillis=150 -XX:+UseLargePages -XX:+AlwaysPreTouch"
+  solrGcTune: "-XX:+UseG1GC -XX:+UseStringDeduplication -XX:+PerfDisableSharedMem -XX:+ParallelRefProcEnabled -XX:MaxGCPauseMillis=150 -XX:+UseLargePages -XX:+AlwaysPreTouch"
 ```
 
 Apply your changes to the custom values yaml using the upgrade script. Observe how k8s rolls out the new Solr pods using: `k get pods --watch`
@@ -99,19 +99,19 @@ Open a port-forward to one of your Solr pods: `k port-forward ${LW_K8S_RELEASE}-
 
 Use the `update_policy.sh` script
 
-=== Step 5: Create a lab3 app in Fusion
+=== Step 5: Create a lab6 app in Fusion
 
-Tail the admin service logs and grep for `lab3` so you can see what happens when Fusion creates an app.
+Tail the admin service logs and grep for `lab6` so you can see what happens when Fusion creates an app.
 
 ```
-k logs <ID> -f --tail 100 | grep lab3
+k logs <ID> -f --tail 100 | grep lab6
 ```
 
 Use the Solr admin console (http://localhost:8983) to see how the collections were assigned across Solr pods.
 
 === Step 6: Fix collection layout
 
-Run the `update_app_coll_layout.sh` script to fix the collection layout. Verify all replicas for all collections in the lab3 app are on the correct nodes.
+Run the `update_app_coll_layout.sh` script to fix the collection layout. Verify all replicas for all collections in the lab6 app are on the correct nodes.
 
 === Step 7: Inspect the headless service
 
